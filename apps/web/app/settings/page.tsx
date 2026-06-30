@@ -246,7 +246,7 @@ export default function SettingsPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No passkeys registered.</p>
               ) : (
                 passkeys.map(pk => (
-                  <div key={pk.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={pk.id} style={{ background: 'var(--btn-secondary-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{pk.name || 'Unnamed Passkey'}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Registered: {new Date(pk.createdAt).toLocaleDateString()}</div>
@@ -257,7 +257,7 @@ export default function SettingsPage() {
               )}
             </div>
 
-            <form onSubmit={handleRegisterPasskey} style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+            <form onSubmit={handleRegisterPasskey} style={{ background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
               <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Enroll New Passkey</h4>
               <div className="form-group">
                 <input
@@ -286,7 +286,7 @@ export default function SettingsPage() {
                 <strong style={{ color: 'var(--warning)', fontSize: '0.85rem', display: 'block', marginBottom: '0.5rem' }}>
                   IMPORTANT: Copy this token now. It will not be shown again.
                 </strong>
-                <code style={{ fontSize: '1rem', color: '#fff', fontWeight: 'bold', fontFamily: 'monospace' }} id="raw-token-display">
+                <code style={{ fontSize: '1rem', color: 'var(--text-main)', fontWeight: 'bold', fontFamily: 'monospace' }} id="raw-token-display">
                   {generatedToken}
                 </code>
               </div>
@@ -297,7 +297,7 @@ export default function SettingsPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No daemon tokens generated yet.</p>
               ) : (
                 tokens.map(token => (
-                  <div key={token.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={token.id} style={{ background: 'var(--btn-secondary-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{token.name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Created: {new Date(token.createdAt).toLocaleDateString()}</div>
@@ -308,7 +308,7 @@ export default function SettingsPage() {
               )}
             </div>
 
-            <form onSubmit={handleGenerateToken} style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+            <form onSubmit={handleGenerateToken} style={{ background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
               <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Generate Machine Token</h4>
               <div className="form-group">
                 <input
@@ -338,7 +338,7 @@ export default function SettingsPage() {
             </p>
 
             {bootstrapCommand && (
-              <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <strong style={{ color: 'var(--warning)', fontSize: '0.85rem' }}>
                     One-shot bootstrap command — run this on the worker:
@@ -349,7 +349,7 @@ export default function SettingsPage() {
                 </div>
                 <pre style={{
                   background: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
+                  color: 'var(--text-main)',
                   padding: '1rem',
                   borderRadius: '6px',
                   overflowX: 'auto',
@@ -365,7 +365,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <form onSubmit={handleAddServer} style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)', marginBottom: '1.5rem' }}>
+            <form onSubmit={handleAddServer} style={{ background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)', marginBottom: '1.5rem' }}>
               <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Add Worker Node</h4>
               <div className="form-group">
                 <input

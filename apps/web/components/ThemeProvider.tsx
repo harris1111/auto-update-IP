@@ -2,7 +2,15 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'nord-dark' | 'nord-light' | 'dark' | 'light';
+
+const THEME_ORDER: Theme[] = ['nord-dark', 'dark', 'nord-light', 'light'];
+const THEME_LABELS: Record<Theme, string> = {
+  'nord-dark': 'Nord Dark',
+  'nord-light': 'Nord Light',
+  'dark': 'Dark',
+  'light': 'Light',
+};
 
 interface ThemeContextValue {
   theme: Theme;
@@ -15,11 +23,17 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+function isTheme(t: string | null): t is Theme {
+  return t === 'nord-dark' || t === 'nord-light' || t === 'dark' || t === 'light';
+}
+
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'dark';
   const stored = localStorage.getItem('theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  if (isTheme(stored)) return stored;
+  if (stored === 'dark') return 'nord-dark';
+  if (stored === 'light') return 'nord-light';
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'nord-light' : 'nord-dark';
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -38,7 +52,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme, mounted]);
 
   const toggle = useCallback(() => {
-    setTheme(t => (t === 'dark' ? 'light' : 'dark'));
+    setTheme(t => {
+      const idx = THEME_ORDER.indexOf(t);
+      return THEME_ORDER[(idx + 1) % THEME_ORDER.length];
+    });
   }, []);
 
   if (!mounted) {
@@ -51,3 +68,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     </ThemeContext.Provider>
   );
 }
+
+export { THEME_LABELS };

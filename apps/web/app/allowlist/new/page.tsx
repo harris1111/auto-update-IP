@@ -228,7 +228,7 @@ export default function NewAllowlistPage() {
 
             <div className="form-group">
               <label className="form-label">Allowed Port Groups</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 {portGroups.map(pg => (
                   <label key={pg.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.925rem' }}>
                     <input
@@ -253,7 +253,7 @@ export default function NewAllowlistPage() {
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>(All selected = rule applies everywhere)</span>
                   )}
                 </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   {allServers.map(s => (
                     <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.925rem' }}>
                       <input
@@ -309,7 +309,6 @@ export default function NewAllowlistPage() {
                     className="form-select"
                     value={ttlOption}
                     onChange={e => setTtlOption(e.target.value)}
-                    style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', color: '#fff' }}
                   >
                     <option value="30">30 Minutes</option>
                     <option value="120">2 Hours</option>

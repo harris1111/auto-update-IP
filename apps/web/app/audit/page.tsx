@@ -99,7 +99,7 @@ export default function AuditPage() {
                     <td>
                       <span 
                         style={{
-                          background: log.action.includes('failed') ? 'var(--danger-glow)' : 'rgba(255,255,255,0.05)',
+                          background: log.action.includes('failed') ? 'var(--danger-glow)' : 'var(--primary-glow)',
                           color: log.action.includes('failed') ? 'var(--danger)' : 'var(--primary)',
                           padding: '0.2rem 0.5rem',
                           borderRadius: '4px',

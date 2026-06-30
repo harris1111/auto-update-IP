@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useTheme } from '@/components/ThemeProvider';
+import { useTheme, THEME_LABELS } from '@/components/ThemeProvider';
 
 interface SyncStatus {
   name: string;
@@ -86,9 +86,9 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-footer">
-        <button className="sidebar-theme-btn" onClick={toggle} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
-          <span className="sidebar-link-icon">{theme === 'dark' ? '\u2600' : '\u263D'}</span>
-          {theme === 'dark' ? 'Light' : 'Dark'} mode
+        <button className="sidebar-theme-btn" onClick={toggle} title={`Switch theme (current: ${THEME_LABELS[theme]})`}>
+          <span className="sidebar-link-icon">{theme.includes('dark') ? '\u2600' : '\u263D'}</span>
+          {THEME_LABELS[theme]}
         </button>
         <button className="sidebar-logout-btn" onClick={handleLogout}>
           <span className="sidebar-link-icon">{'\u2386'}</span>

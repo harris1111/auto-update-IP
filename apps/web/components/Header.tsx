@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '@/components/ThemeProvider';
+import { useTheme, THEME_LABELS } from '@/components/ThemeProvider';
 
 export default function Header() {
   const router = useRouter();
@@ -24,8 +24,8 @@ export default function Header() {
           <Link href="/port-groups">Port Groups</Link>
           <Link href="/audit">Audit Logs</Link>
           <Link href="/settings">Settings</Link>
-          <button className="theme-toggle" onClick={toggle} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
-            {theme === 'dark' ? '\u2600' : '\u263D'}
+          <button className="theme-toggle" onClick={toggle} title={`Theme: ${THEME_LABELS[theme]}`}>
+            {theme.includes('dark') ? '\u2600' : '\u263D'}
           </button>
           <button 
             onClick={handleLogout}

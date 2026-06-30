@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{
-          __html: `(function(){var t=localStorage.getItem('theme');if(!t) t=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t)})()`
+          __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark')t='nord-dark';else if(t==='light')t='nord-light';if(t!=='nord-dark'&&t!=='nord-light'&&t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme:light)').matches?'nord-light':'nord-dark'}document.documentElement.setAttribute('data-theme',t)})()`
         }} />
       </head>
       <body className="min-h-full font-sans">
