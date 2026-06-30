@@ -50,6 +50,11 @@ export default function DashboardPage() {
   const [stepUpPayload, setStepUpPayload] = useState<any>(null);
   const [stepUpCallback, setStepUpCallback] = useState<(token: string) => void>(() => () => {});
 
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importResult, setImportResult] = useState<any>(null);
+  const [importLoading, setImportLoading] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -169,6 +174,78 @@ export default function DashboardPage() {
     });
   };
 
+  const handleExportRules = () => {
+    const data = entries.map(e => ({
+      ipCidr: e.ipCidr,
+      label: e.label,
+      reason: e.reason || '',
+      portGroupKeys: [],
+      mode: e.isPersistent ? 'persistent' : 'temporary',
+      ttlMinutes: e.isPersistent ? undefined : (
+        e.expiresAt ? Math.round((new Date(e.expiresAt).getTime() - Date.now()) / 60000) : 120
+      ),
+      serverIds: e.servers.map(s => s.id),
+    }));
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `firewall-rules-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSubmit = () => {
+    const payload = { importText };
+    triggerStepUp('allowlist.import', { importText }, async (stepUpToken) => {
+      setImportLoading(true);
+      try {
+        let rules;
+        try {
+          rules = JSON.parse(importText);
+          if (!Array.isArray(rules)) throw new Error('Not an array');
+        } catch {
+          setImportResult({ error: 'Invalid JSON. Must be an array of rule objects.' });
+          setImportLoading(false);
+          return;
+        }
+        const res = await fetch('/api/allowlist/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules, stepUpToken }),
+        });
+        const result = await res.json();
+        setImportResult(result);
+        if (result.summary) {
+          await fetchData();
+        }
+      } catch (err) {
+        setImportResult({ error: 'Import failed' });
+      } finally {
+        setImportLoading(false);
+      }
+    });
+  };
+
+  const importTemplate = `[
+  {
+    "ipCidr": "203.0.113.42/32",
+    "label": "Dev Office VPN",
+    "reason": "Access for sprint 42",
+    "portGroupKeys": ["postgres", "mongo"],
+    "mode": "temporary",
+    "ttlMinutes": 480
+  },
+  {
+    "ipCidr": "198.51.100.0/24",
+    "label": "Staging Cluster",
+    "reason": "CI/CD pipeline access",
+    "portGroupKeys": ["all"],
+    "mode": "persistent"
+  }
+]`;
+
   const filteredEntries = entries.filter(e =>
     e.ipCidr.includes(searchTerm) ||
     e.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -263,7 +340,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <section style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <input
             type="text"
             className="form-input"
@@ -274,12 +351,20 @@ export default function DashboardPage() {
             id="search-input"
           />
 
-          <button className="btn btn-danger" onClick={handleRevokeAll} id="revoke-all-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/>
-            </svg>
-            Emergency Close (Revoke All)
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem' }} onClick={handleExportRules}>
+              Export JSON
+            </button>
+            <button className="btn btn-secondary" style={{ padding: '0.5rem 0.8rem', fontSize: '0.85rem' }} onClick={() => { setImportText(importTemplate); setImportResult(null); setImportOpen(true); }}>
+              Import
+            </button>
+            <button className="btn btn-danger" onClick={handleRevokeAll} id="revoke-all-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/>
+              </svg>
+              Emergency Close (Revoke All)
+            </button>
+          </div>
         </section>
 
         <section style={{ marginBottom: '3rem' }}>
@@ -398,6 +483,74 @@ export default function DashboardPage() {
         payload={stepUpPayload}
         onSuccess={stepUpCallback}
       />
+
+      {importOpen && (
+        <div className="modal-overlay" onClick={() => setImportOpen(false)}>
+          <div className="modal-card" style={{ maxWidth: '680px', maxHeight: '90vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Import Firewall Rules</h3>
+              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setImportOpen(false)}>Close</button>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+              Paste a JSON array of rule objects. Required fields: <strong>ipCidr</strong>, <strong>label</strong>, <strong>portGroupKeys</strong>, <strong>mode</strong>.
+              Supported port group keys: <code>postgres</code>, <code>mongo</code>, <code>minio</code>, <code>redis</code>, <code>all</code>.
+            </p>
+
+            {!importResult && (
+              <>
+                <textarea
+                  className="form-input"
+                  value={importText}
+                  onChange={e => setImportText(e.target.value)}
+                  rows={12}
+                  style={{ fontFamily: 'monospace', fontSize: '0.8rem', resize: 'vertical', marginBottom: '1rem' }}
+                  placeholder={importTemplate}
+                />
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.6rem' }}
+                  onClick={handleImportSubmit}
+                  disabled={importLoading || !importText.trim()}
+                >
+                  {importLoading ? 'Importing...' : 'Import Rules'}
+                </button>
+              </>
+            )}
+
+            {importResult && !importResult.error && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div className={`badge ${importResult.summary?.failed === 0 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.9rem', padding: '0.5rem 1rem', marginBottom: '1rem', display: 'inline-block' }}>
+                  Imported: {importResult.summary?.created || 0} created, {importResult.summary?.failed || 0} failed
+                </div>
+                {importResult.results?.some((r: any) => r.status === 'error') && (
+                  <div style={{ background: 'var(--danger-glow)', border: '1px solid var(--danger)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', maxHeight: '200px', overflow: 'auto' }}>
+                    {importResult.results.filter((r: any) => r.status === 'error').map((r: any, i: number) => (
+                      <div key={i} style={{ color: 'var(--danger)', marginBottom: '0.25rem' }}>
+                        Rule #{r.index + 1}: {r.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button className="btn btn-secondary" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => { setImportResult(null); setImportOpen(false); }}>
+                  Done
+                </button>
+              </div>
+            )}
+
+            {importResult?.error && (
+              <div>
+                <div style={{ background: 'var(--danger-glow)', border: '1px solid var(--danger)', borderRadius: '8px', padding: '0.75rem', color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  {importResult.error}
+                </div>
+                <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => setImportResult(null)}>
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
