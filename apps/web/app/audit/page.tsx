@@ -187,7 +187,7 @@ export default function AuditPage() {
 
       {expandedMeta && (
         <div className="modal-overlay" onClick={() => setExpandedMeta(null)}>
-          <div className="modal-card" style={{ maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content animate-fade-in" style={{ maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Audit Metadata</h3>
               <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setExpandedMeta(null)}>Close</button>

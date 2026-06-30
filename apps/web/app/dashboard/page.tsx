@@ -486,7 +486,7 @@ export default function DashboardPage() {
 
       {importOpen && (
         <div className="modal-overlay" onClick={() => setImportOpen(false)}>
-          <div className="modal-card" style={{ maxWidth: '680px', maxHeight: '90vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content animate-fade-in" style={{ maxWidth: '680px', maxHeight: '90vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0 }}>Import Firewall Rules</h3>
               <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setImportOpen(false)}>Close</button>
