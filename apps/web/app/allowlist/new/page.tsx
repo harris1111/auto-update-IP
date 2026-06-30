@@ -238,7 +238,11 @@ export default function NewAllowlistPage() {
                       style={{ cursor: 'pointer' }}
                     />
                     <div>
-                      <strong>{pg.name}</strong> <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>({pg.description})</span>
+                      <strong>{pg.name}</strong>
+                      {pg.key === 'all' && (
+                        <span className="badge badge-warning" style={{ fontSize: '0.6rem', marginLeft: '0.4rem', verticalAlign: 'middle' }}>Auto</span>
+                      )}
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({pg.description})</span>
                     </div>
                   </label>
                 ))}
