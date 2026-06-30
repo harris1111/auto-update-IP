@@ -56,6 +56,9 @@ export async function POST(req: Request) {
 
     const sanitizedKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').substring(0, 32);
     const sanitizedPorts: number[] = Array.isArray(ports) ? ports.filter((p: any) => typeof p === 'number' && ALLOWED_PORTS.includes(p)) : [];
+    if (sanitizedPorts.length === 0) {
+      return NextResponse.json({ error: 'At least one valid port is required' }, { status: 400 });
+    }
 
     const existing = await prisma.portGroup.findUnique({ where: { key: sanitizedKey } });
     if (existing) {

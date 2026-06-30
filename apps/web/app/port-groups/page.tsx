@@ -30,6 +30,7 @@ export default function PortGroupsPage() {
   const [formDesc, setFormDesc] = useState('');
   const [formPorts, setFormPorts] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const ALLOWED_PORTS = [51032, 51033, 51034, 51035];
 
@@ -65,6 +66,7 @@ export default function PortGroupsPage() {
     setFormPorts('');
     setFormEnabled(true);
     setError('');
+    setFieldErrors({});
   };
 
   const handleEdit = (g: PortGroup) => {
@@ -103,12 +105,20 @@ export default function PortGroupsPage() {
       .map(p => parseInt(p.trim(), 10))
       .filter(p => !isNaN(p) && ALLOWED_PORTS.includes(p));
 
+    const errors: Record<string, string> = {};
+
     if (!editingId && !formKey.trim()) {
-      setError('Key is required.');
-      return;
+      errors.key = 'Key is required';
     }
     if (!formName.trim()) {
-      setError('Name is required.');
+      errors.name = 'Name is required';
+    }
+    if (ports.length === 0) {
+      errors.ports = 'At least one valid port is required';
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
       return;
     }
 
@@ -196,23 +206,25 @@ export default function PortGroupsPage() {
                   <input
                     type="text"
                     className="form-input"
+                    style={fieldErrors.key ? { borderColor: 'var(--danger)' } : undefined}
                     value={formKey}
-                    onChange={e => setFormKey(e.target.value)}
+                    onChange={e => { setFormKey(e.target.value); setFieldErrors(prev => ({ ...prev, key: '' })); }}
                     disabled={!!editingId}
                     placeholder="e.g. postgres"
-                    required
                   />
+                  {fieldErrors.key && <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>{fieldErrors.key}</span>}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Name</label>
                   <input
                     type="text"
                     className="form-input"
+                    style={fieldErrors.name ? { borderColor: 'var(--danger)' } : undefined}
                     value={formName}
-                    onChange={e => setFormName(e.target.value)}
+                    onChange={e => { setFormName(e.target.value); setFieldErrors(prev => ({ ...prev, name: '' })); }}
                     placeholder="e.g. PostgreSQL (DevDB)"
-                    required
                   />
+                  {fieldErrors.name && <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>{fieldErrors.name}</span>}
                 </div>
               </div>
               <div className="form-group">
@@ -231,10 +243,12 @@ export default function PortGroupsPage() {
                   <input
                     type="text"
                     className="form-input"
+                    style={fieldErrors.ports ? { borderColor: 'var(--danger)' } : undefined}
                     value={formPorts}
-                    onChange={e => setFormPorts(e.target.value)}
+                    onChange={e => { setFormPorts(e.target.value); setFieldErrors(prev => ({ ...prev, ports: '' })); }}
                     placeholder="51032, 51033"
                   />
+                  {fieldErrors.ports && <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>{fieldErrors.ports}</span>}
                 </div>
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem' }}>Enabled</label>
