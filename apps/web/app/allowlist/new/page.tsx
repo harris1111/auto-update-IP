@@ -20,7 +20,7 @@ export default function NewAllowlistPage() {
   const [mode, setMode] = useState<'temporary' | 'persistent'>('temporary');
   const [ttlOption, setTtlOption] = useState('120');
   const [customTtl, setCustomTtl] = useState('');
-  const [selectedGroups, setSelectedGroups] = useState<string[]>(['all_safe']);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>(['all']);
   const [selectedServers, setSelectedServers] = useState<string[]>([]);
 
   const [currentIp, setCurrentIp] = useState('');

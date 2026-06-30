@@ -103,7 +103,7 @@ export default function DashboardPage() {
       ipCidr: currentIpData ? `${currentIpData.ip}/32` : '127.0.0.1/32',
       label: 'Quick Allow Client IP',
       reason: 'Dynamic developer session',
-      portGroupKeys: ['all_safe'],
+      portGroupKeys: ['all'],
       mode: 'temporary',
       ttlMinutes: 120,
       serverIds: allServers.map(s => s.id),
