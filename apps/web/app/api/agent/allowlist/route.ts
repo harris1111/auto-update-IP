@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sha256, canonicalJsonStringify, signPayload } from '@/lib/crypto';
+import { canonicalJsonStringify, signPayload } from '@/lib/crypto';
 import { logAudit } from '@/lib/audit';
 
 async function authenticateAgent(req: Request) {
@@ -10,29 +10,9 @@ async function authenticateAgent(req: Request) {
   }
 
   const tokenStr = authHeader.substring(7).trim();
-  const hashedToken = sha256(tokenStr);
 
   if (process.env.AGENT_TOKEN && tokenStr === process.env.AGENT_TOKEN) {
     return { name: 'env-default', id: 'env-default' };
-  }
-
-  try {
-    const agentToken = await prisma.agentToken.findFirst({
-      where: {
-        tokenHash: hashedToken,
-        enabled: true,
-      },
-    });
-
-    if (agentToken) {
-      await prisma.agentToken.update({
-        where: { id: agentToken.id },
-        data: { lastUsedAt: new Date() },
-      });
-      return agentToken;
-    }
-  } catch (error) {
-    // Offline
   }
 
   return null;

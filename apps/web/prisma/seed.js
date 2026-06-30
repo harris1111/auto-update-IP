@@ -1,11 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
-const crypto = require('crypto');
 
 const prisma = new PrismaClient();
-
-function sha256(input) {
-  return crypto.createHash('sha256').update(input).digest('hex');
-}
 
 async function main() {
   const DEFAULT_PORT_GROUPS = [
@@ -24,42 +19,6 @@ async function main() {
     });
   }
   console.log('Seeded default port groups.');
-
-  const prodRawToken = process.env.AGENT_TOKEN;
-  if (prodRawToken) {
-    const prodTokenHash = sha256(prodRawToken);
-    await prisma.agentToken.upsert({
-      where: { id: '33333333-3333-3333-3333-333333333333' },
-      update: {
-        tokenHash: prodTokenHash,
-        enabled: true,
-      },
-      create: {
-        id: '33333333-3333-3333-3333-333333333333',
-        name: 'Production Agent',
-        tokenHash: prodTokenHash,
-        enabled: true,
-      },
-    });
-    console.log('Seeded production agent token.');
-  }
-
-  const devRawToken = 'agt_compose_dev_token_value_xyz';
-  const devTokenHash = sha256(devRawToken);
-  await prisma.agentToken.upsert({
-    where: { id: '22222222-2222-2222-2222-222222222222' },
-    update: {
-      tokenHash: devTokenHash,
-      enabled: true,
-    },
-    create: {
-      id: '22222222-2222-2222-2222-222222222222',
-      name: 'Default Compose Agent',
-      tokenHash: devTokenHash,
-      enabled: true,
-    },
-  });
-  console.log('Seeded default agent token.');
 }
 
 main()

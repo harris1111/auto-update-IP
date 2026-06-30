@@ -12,14 +12,6 @@ interface Passkey {
   lastUsedAt: string | null;
 }
 
-interface AgentToken {
-  id: string;
-  name: string;
-  enabled: boolean;
-  createdAt: string;
-  lastUsedAt: string | null;
-}
-
 interface Server {
   id: string;
   name: string;
@@ -28,21 +20,18 @@ interface Server {
   entryCount: number;
 }
 
-type Tab = 'passkeys' | 'tokens' | 'servers';
+type Tab = 'passkeys' | 'servers';
 
 export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
-  const [tokens, setTokens] = useState<AgentToken[]>([]);
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('passkeys');
 
   const [newPasskeyName, setNewPasskeyName] = useState('');
-  const [newTokenName, setNewTokenName] = useState('');
   const [newServerName, setNewServerName] = useState('');
-  const [generatedToken, setGeneratedToken] = useState('');
   const [bootstrapCommand, setBootstrapCommand] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -62,9 +51,6 @@ export default function SettingsPage() {
         const pkRes = await fetch(`/api/auth/passkey/list?userId=${meData.user.id}`).catch(() => null);
         if (pkRes && pkRes.ok) setPasskeys(await pkRes.json());
       }
-
-      const tokenRes = await fetch('/api/agent/token');
-      if (tokenRes.ok) setTokens(await tokenRes.json());
 
       const svRes = await fetch('/api/servers');
       if (svRes.ok) setServers(await svRes.json());
@@ -114,34 +100,6 @@ export default function SettingsPage() {
       await fetchSettingsData();
     } catch (err: any) {
       setError(err.message || 'Passkey enrollment failed');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleGenerateToken = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setGeneratedToken('');
-    setActionLoading(true);
-
-    try {
-      const res = await fetch('/api/agent/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTokenName.trim() }),
-      });
-
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setGeneratedToken(data.rawToken);
-      setNewTokenName('');
-      setSuccess('Agent machine token created.');
-      await fetchSettingsData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate token');
     } finally {
       setActionLoading(false);
     }
@@ -209,7 +167,7 @@ export default function SettingsPage() {
       <main className="container animate-fade-in" style={{ flex: 1 }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>System Settings</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
-          Configure passkey credentials, manage agent tokens, and register worker servers.
+          Configure passkey credentials and register worker servers.
         </p>
 
         {error && (
@@ -225,14 +183,14 @@ export default function SettingsPage() {
         )}
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-          {(['passkeys', 'tokens', 'servers'] as Tab[]).map(tab => (
+          {(['passkeys', 'servers'] as Tab[]).map(tab => (
             <button
               key={tab}
               className={`btn ${activeTab === tab ? 'btn-primary' : 'btn-secondary'}`}
               style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}
               onClick={() => { setActiveTab(tab); setError(''); setSuccess(''); }}
             >
-              {tab === 'passkeys' ? 'Passkeys' : tab === 'tokens' ? 'Agent Tokens' : 'Servers'}
+              {tab === 'passkeys' ? 'Passkeys' : 'Servers'}
             </button>
           ))}
         </div>
@@ -272,57 +230,6 @@ export default function SettingsPage() {
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.5rem 1rem', fontSize: '0.9rem' }} disabled={actionLoading || !newPasskeyName}>
                 Enroll Passkey
-              </button>
-            </form>
-          </div>
-        )}
-
-        {activeTab === 'tokens' && (
-          <div className="card" style={{ height: 'fit-content' }}>
-            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Firewall Agent Tokens</h3>
-
-            {generatedToken && (
-              <div style={{ background: 'var(--warning-glow)', border: '1px solid rgba(245,158,11,0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', wordBreak: 'break-all' }}>
-                <strong style={{ color: 'var(--warning)', fontSize: '0.85rem', display: 'block', marginBottom: '0.5rem' }}>
-                  IMPORTANT: Copy this token now. It will not be shown again.
-                </strong>
-                <code style={{ fontSize: '1rem', color: 'var(--text-main)', fontWeight: 'bold', fontFamily: 'monospace' }} id="raw-token-display">
-                  {generatedToken}
-                </code>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              {tokens.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No daemon tokens generated yet.</p>
-              ) : (
-                tokens.map(token => (
-                  <div key={token.id} style={{ background: 'var(--btn-secondary-bg)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{token.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Created: {new Date(token.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Active</span>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <form onSubmit={handleGenerateToken} style={{ background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
-              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Generate Machine Token</h4>
-              <div className="form-group">
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Agent Name (e.g. Dedi Server 1)"
-                  value={newTokenName}
-                  onChange={e => setNewTokenName(e.target.value)}
-                  required
-                  id="token-name-input"
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.5rem 1rem', fontSize: '0.9rem' }} disabled={actionLoading || !newTokenName} id="generate-token-btn">
-                Generate Token
               </button>
             </form>
           </div>

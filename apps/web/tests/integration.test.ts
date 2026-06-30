@@ -21,9 +21,6 @@ vi.mock('@/lib/prisma', () => {
         findFirst: vi.fn(),
         update: vi.fn(),
       },
-      agentToken: {
-        findFirst: vi.fn(),
-      },
       portGroup: {
         findMany: vi.fn(() => []),
       }
