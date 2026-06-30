@@ -1,0 +1,12 @@
+{
+  "name": "auto-update-ip-root",
+  "private": true,
+  "scripts": {
+    "test": "pnpm --filter web test",
+    "test:unit": "pnpm --filter web test:unit",
+    "test:integration": "pnpm --filter web test:integration",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "lint": "pnpm --filter web lint",
+    "build": "pnpm --filter web build"
+  }
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=Firewall Agent for update.0err.com
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/debian/infra/update-allowlist/apps/firewall-agent
+ExecStart=/home/debian/infra/update-allowlist/apps/firewall-agent/firewall-agent
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/debian/infra/update-allowlist/apps/firewall-agent/.env
+
+[Install]
+WantedBy=multi-user.target

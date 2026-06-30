@@ -1,0 +1,14 @@
+node_modules/
+.next/
+*.log
+.env
+apps/web/.env
+apps/firewall-agent/.env
+.env.local
+.env.*.local
+test-results/
+apps/web/test-results/
+*.db
+*.db-wal
+*.db-shm
+apps/firewall-agent/firewall-agent

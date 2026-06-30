@@ -1,0 +1,129 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: update-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: allowlist
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d allowlist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - update-net
+    labels:
+      com.shared-dedi.owner: debian
+      com.shared-dedi.stack: update-allowlist
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: update-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - update-net
+    labels:
+      com.shared-dedi.owner: debian
+      com.shared-dedi.stack: update-allowlist
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: update-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:52118:5000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/allowlist"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      SESSION_SECRET: ${SESSION_SECRET}
+      APP_SIGNING_SECRET: ${APP_SIGNING_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      AGENT_TOKEN: ${AGENT_TOKEN}
+      CF_TEAM_DOMAIN: ${CF_TEAM_DOMAIN:-}
+      CF_AUD: ${CF_AUD:-}
+      PASSKEY_RP_ID: update.0err.com
+      PASSKEY_RP_NAME: "0ERR Firewall Update"
+      PASSKEY_ORIGIN: "https://update.0err.com"
+      TRUST_CF_CONNECTING_IP: "true"
+    command: sh -c "cd apps/web && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && cd ../.. && pnpm --filter web start"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - update-net
+    labels:
+      com.shared-dedi.owner: debian
+      com.shared-dedi.stack: update-allowlist
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  firewall-agent:
+    build:
+      context: apps/firewall-agent
+      dockerfile: Dockerfile
+    container_name: update-firewall-agent
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    environment:
+      ALLOWLIST_API_URL: "http://127.0.0.1:52118/api/agent/allowlist"
+      AGENT_TOKEN: ${AGENT_TOKEN}
+      APP_SIGNING_SECRET: ${APP_SIGNING_SECRET}
+      NFT_TABLE: shared_dedi
+      NFT_DB_V4_SET: db_allow_v4
+      NFT_DB_V6_SET: db_allow_v6
+      APPLY_INTERVAL_SECONDS: "15"
+      FAIL_CLOSED: "true"
+      DRY_RUN: "false"
+    depends_on:
+      - web
+    labels:
+      com.shared-dedi.owner: debian
+      com.shared-dedi.stack: update-allowlist
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  update-net:
+    driver: bridge

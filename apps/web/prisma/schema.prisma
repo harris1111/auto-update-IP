@@ -1,0 +1,122 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                String              @id @default(uuid()) @db.Uuid
+  emailHash         String              @map("email_hash")
+  displayName       String?             @map("display_name")
+  provider          String
+  providerSubject   String              @map("provider_subject")
+  role              String              @default("admin")
+  passkeyRequired   Boolean             @default(true) @map("passkey_required")
+  passkeyEnrolled   Boolean             @default(false) @map("passkey_enrolled")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  lastLoginAt       DateTime?           @map("last_login_at")
+  credentials       PasskeyCredential[]
+  otpChallenges     OtpChallenge[]
+  createdAllowlist  AllowlistEntry[]    @relation("CreatedBy")
+  updatedAllowlist  AllowlistEntry[]    @relation("UpdatedBy")
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model PasskeyCredential {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  credentialId String    @unique @map("credential_id")
+  publicKey    String    @map("public_key")
+  counter      BigInt    @default(0)
+  transports   Json?
+  name         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("passkey_credentials")
+}
+
+model OtpChallenge {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  action             String
+  actionPayloadHash  String    @map("action_payload_hash")
+  otpHash            String    @map("otp_hash")
+  expiresAt          DateTime  @map("expires_at")
+  consumedAt         DateTime? @map("consumed_at")
+  attempts           Int       @default(0)
+  maxAttempts        Int       @default(5) @map("max_attempts")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_challenges")
+}
+
+model PortGroup {
+  id                     String   @id @default(uuid()) @db.Uuid
+  key                    String   @unique
+  name                   String
+  description            String?
+  ports                  Int[]
+  enabled                Boolean  @default(true)
+  publicExposureAllowed  Boolean  @default(true) @map("public_exposure_allowed")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("port_groups")
+}
+
+model AllowlistEntry {
+  id             String    @id @default(uuid()) @db.Uuid
+  ipCidr         String    @map("ip_cidr")
+  ipVersion      Int       @map("ip_version")
+  label          String
+  reason         String?
+  portGroupIds   String[]  @map("port_group_ids")
+  ports          Int[]
+  isPersistent   Boolean   @default(false) @map("is_persistent")
+  expiresAt      DateTime? @map("expires_at")
+  enabled        Boolean   @default(true)
+  createdBy      String    @map("created_by") @db.Uuid
+  updatedBy      String    @map("updated_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  lastAppliedAt  DateTime? @map("last_applied_at")
+  creator        User      @relation("CreatedBy", fields: [createdBy], references: [id])
+  updater        User      @relation("UpdatedBy", fields: [updatedBy], references: [id])
+
+  @@map("allowlist_entries")
+}
+
+model AuditLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  actorUserId    String?   @map("actor_user_id") @db.Uuid
+  action         String
+  resourceType   String    @map("resource_type")
+  resourceId     String?   @map("resource_id") @db.Uuid
+  ip             String?
+  userAgentHash  String?   @map("user_agent_hash")
+  metadata       Json      @default("{}")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  actor          User?     @relation(fields: [actorUserId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model AgentToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String
+  tokenHash  String    @map("token_hash")
+  enabled    Boolean   @default(true)
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("agent_tokens")
+}

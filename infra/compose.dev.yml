@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: update-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: allowlist
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: update-redis
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: update-mailhog
+    ports:
+      - "127.0.0.1:8025:8025" # HTTP UI
+      - "127.0.0.1:1025:1025" # SMTP
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    container_name: update-web
+    environment:
+      DATABASE_URL: "postgresql://postgres:devpassword@postgres:5432/allowlist"
+      REDIS_URL: "redis://redis:6379"
+      SESSION_SECRET: "compose-dev-session-secret-at-least-32-chars"
+      APP_SIGNING_SECRET: "compose-dev-signing-secret-at-least-32-chars"
+      ADMIN_EMAIL: "admin@0err.com"
+      SMTP_HOST: "mailhog"
+      SMTP_PORT: "1025"
+      PASSKEY_RP_ID: "localhost"
+      PASSKEY_RP_NAME: "0ERR Firewall Update"
+      PASSKEY_ORIGIN: "http://localhost:5000"
+      MOCK_AUTH: "true"
+      TRUST_CF_CONNECTING_IP: "true"
+    ports:
+      - "5000:5000"
+    command: sh -c "cd apps/web && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && cd ../.. && pnpm --filter web start"
+    depends_on:
+      - postgres
+      - redis
+      - mailhog
+    restart: unless-stopped
+
+  firewall-agent:
+    build:
+      context: ..
+      dockerfile: apps/firewall-agent/Dockerfile
+    container_name: update-firewall-agent
+    environment:
+      ALLOWLIST_API_URL: "http://web:5000/api/agent/allowlist"
+      AGENT_TOKEN: "agt_compose_dev_token_value_xyz"
+      APP_SIGNING_SECRET: "compose-dev-signing-secret-at-least-32-chars"
+      NFT_TABLE: "shared_dedi"
+      NFT_DB_V4_SET: "db_allow_v4"
+      NFT_DB_V6_SET: "db_allow_v6"
+      APPLY_INTERVAL_SECONDS: "15"
+      FAIL_CLOSED: "true"
+      DRY_RUN: "true" # Keep in dry run mode for safety in docker testing
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  pgdata:
