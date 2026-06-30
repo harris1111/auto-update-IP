@@ -72,6 +72,7 @@ export async function POST(req: Request) {
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'otp_requested',
       resourceType: 'otp_challenge',

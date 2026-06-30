@@ -39,6 +39,7 @@ export async function POST(req: Request) {
 
     if (!verification.verified || !verification.authenticationInfo) {
       await logAudit({
+    headers: req.headers,
         actorUserId: userId,
         action: 'login_failed',
         resourceType: 'user',
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
     });
 
     await logAudit({
+    headers: req.headers,
       actorUserId: user.id,
       action: 'login_success',
       resourceType: 'user',
@@ -82,6 +84,7 @@ export async function POST(req: Request) {
     });
 
     await logAudit({
+    headers: req.headers,
       actorUserId: user.id,
       action: 'passkey_used',
       resourceType: 'passkey_credential',

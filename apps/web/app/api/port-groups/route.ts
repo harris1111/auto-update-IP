@@ -77,6 +77,7 @@ export async function POST(req: Request) {
     });
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'port_group_created',
       resourceType: 'port_group',
@@ -115,6 +116,7 @@ export async function PUT(req: Request) {
     });
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'port_group_updated',
       resourceType: 'port_group',
@@ -149,6 +151,7 @@ export async function DELETE(req: Request) {
     await prisma.portGroup.delete({ where: { id } });
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'port_group_deleted',
       resourceType: 'port_group',

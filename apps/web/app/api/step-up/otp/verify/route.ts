@@ -31,6 +31,7 @@ export async function POST(req: Request) {
 
     if (!challenge) {
       await logAudit({
+    headers: req.headers,
         actorUserId: session.userId,
         action: 'otp_failed',
         resourceType: 'otp_challenge',
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
 
     if (challenge.attempts >= challenge.maxAttempts) {
       await logAudit({
+    headers: req.headers,
         actorUserId: session.userId,
         action: 'otp_failed',
         resourceType: 'otp_challenge',
@@ -59,6 +61,7 @@ export async function POST(req: Request) {
     const isMatch = await verifyOtp(otp, challenge.otpHash);
     if (!isMatch) {
       await logAudit({
+    headers: req.headers,
         actorUserId: session.userId,
         action: 'otp_failed',
         resourceType: 'otp_challenge',
@@ -78,6 +81,7 @@ export async function POST(req: Request) {
     const token = await generateStepUpToken(session.userId, session.sessionId, action, payloadHash);
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'otp_verified',
       resourceType: 'otp_challenge',

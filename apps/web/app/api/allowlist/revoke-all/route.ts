@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'allowlist_revoke_all',
       resourceType: 'allowlist_entry',

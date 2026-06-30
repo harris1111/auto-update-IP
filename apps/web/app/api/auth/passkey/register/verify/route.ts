@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     ]);
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'passkey_enrolled',
       resourceType: 'passkey_credential',

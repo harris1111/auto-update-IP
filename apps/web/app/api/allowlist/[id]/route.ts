@@ -99,6 +99,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'allowlist_updated',
       resourceType: 'allowlist_entry',
@@ -155,6 +156,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'allowlist_deleted',
       resourceType: 'allowlist_entry',

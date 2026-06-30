@@ -48,6 +48,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'allowlist_revoked',
       resourceType: 'allowlist_entry',

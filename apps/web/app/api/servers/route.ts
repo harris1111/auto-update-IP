@@ -108,6 +108,7 @@ export async function POST(req: Request) {
     const bootstrapCommand = buildBootstrapCommand(serverName);
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'server_created',
       resourceType: 'server',
@@ -145,6 +146,7 @@ export async function DELETE(req: Request) {
     await prisma.server.delete({ where: { id: serverId } });
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'server_deleted',
       resourceType: 'server',

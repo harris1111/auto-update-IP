@@ -143,6 +143,7 @@ async function createSessionAndRespond(user: any, email: string, req: Request) {
   }).catch(() => {});
 
   await logAudit({
+    headers: req.headers,
     actorUserId: user.id,
     action: 'login_success',
     resourceType: 'session',

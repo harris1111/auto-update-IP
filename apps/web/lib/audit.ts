@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
+import { getClientIP } from './get-client-ip';
 
 export async function logAudit({
   actorUserId,
@@ -7,6 +8,7 @@ export async function logAudit({
   resourceType,
   resourceId,
   ip,
+  headers,
   userAgent,
   metadata = {},
 }: {
@@ -15,9 +17,12 @@ export async function logAudit({
   resourceType: string;
   resourceId?: string | null;
   ip?: string | null;
+  headers?: Headers;
   userAgent?: string | null;
   metadata?: any;
 }) {
+  const resolvedIP = ip || (headers ? getClientIP(headers) : null);
+
   const userAgentHash = userAgent
     ? crypto.createHash('sha256').update(userAgent).digest('hex')
     : null;
@@ -29,7 +34,7 @@ export async function logAudit({
         action,
         resourceType,
         resourceId: resourceId || null,
-        ip: ip || null,
+        ip: resolvedIP || null,
         userAgentHash,
         metadata: metadata || {},
       },
@@ -43,7 +48,7 @@ export async function logAudit({
       action,
       resourceType,
       resourceId,
-      ip,
+      ip: resolvedIP,
       userAgentHash,
       metadata,
       createdAt: new Date(),

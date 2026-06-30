@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { clearSession, getSession } from '@/lib/session';
 import { logAudit } from '@/lib/audit';
 
-export async function POST() {
+export async function POST(req: Request) {
   const session = await getSession();
   if (session) {
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'logout_success',
       resourceType: 'user',

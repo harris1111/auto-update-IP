@@ -63,6 +63,7 @@ export async function POST(req: Request) {
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'agent_token_created', // custom audit log
       resourceType: 'agent_token',

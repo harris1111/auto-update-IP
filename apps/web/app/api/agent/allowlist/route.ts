@@ -155,6 +155,7 @@ export async function GET(req: Request) {
     }
 
     await logAudit({
+    headers: req.headers,
       actorUserId: null,
       action: 'agent_allowlist_fetched',
       resourceType: 'agent',

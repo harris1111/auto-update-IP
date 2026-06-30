@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     const token = await generateStepUpToken(session.userId, session.sessionId, action, payloadHash);
 
     await logAudit({
+    headers: req.headers,
       actorUserId: session.userId,
       action: 'passkey_used',
       resourceType: 'passkey_credential',

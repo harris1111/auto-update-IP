@@ -95,6 +95,7 @@ export async function POST(req: Request) {
       }
 
       await logAudit({
+    headers: req.headers,
         actorUserId: null,
         action: 'agent_report_success',
         resourceType: 'agent',
@@ -103,6 +104,7 @@ export async function POST(req: Request) {
       });
     } else {
       await logAudit({
+    headers: req.headers,
         actorUserId: null,
         action: 'agent_report_failed',
         resourceType: 'agent',
