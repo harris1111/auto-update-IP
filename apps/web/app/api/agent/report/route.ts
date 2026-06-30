@@ -51,22 +51,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing status' }, { status: 400 });
     }
 
+    const url = new URL(req.url);
+    const serverName = url.searchParams.get('server') || req.headers.get('x-agent-server') || '';
     const appliedTime = appliedAt ? new Date(appliedAt) : new Date();
 
-    // Cache sync state in redis for easy dashboard check
-    await redis.set('agent:last_sync_status', status, 'EX', 86400);
-    await redis.set('agent:last_sync_time', appliedTime.toISOString(), 'EX', 86400);
+    const syncKey = serverName ? `agent:${serverName}:sync` : 'agent:sync';
+    const statusKey = serverName ? `agent:${serverName}:status` : 'agent:last_sync_status';
+    const timeKey = serverName ? `agent:${serverName}:time` : 'agent:last_sync_time';
+    const errorKey = serverName ? `agent:${serverName}:error` : 'agent:last_sync_error';
+
+    await redis.set(statusKey, status, 'EX', 86400);
+    await redis.set(timeKey, appliedTime.toISOString(), 'EX', 86400);
     if (errorMessage) {
-      await redis.set('agent:last_sync_error', errorMessage, 'EX', 86400);
+      await redis.set(errorKey, errorMessage, 'EX', 86400);
     } else {
-      await redis.del('agent:last_sync_error');
+      await redis.del(errorKey);
     }
 
     if (status === 'success') {
-      // Update lastAppliedAt on allowlist entries in DB
+      const where: any = { enabled: true };
+
+      if (serverName) {
+        try {
+          const server = await prisma.server.findUnique({ where: { name: serverName } });
+          if (server) {
+            where.OR = [
+              { servers: { none: {} } },
+              { servers: { some: { id: server.id } } },
+            ];
+          }
+        } catch (e) {
+          // Offline
+        }
+      }
+
       try {
         await prisma.allowlistEntry.updateMany({
-          where: { enabled: true },
+          where,
           data: { lastAppliedAt: appliedTime },
         });
       } catch (e) {
@@ -78,7 +99,7 @@ export async function POST(req: Request) {
         action: 'agent_report_success',
         resourceType: 'agent',
         resourceId: agent.id,
-        metadata: { appliedAt: appliedTime },
+        metadata: { appliedAt: appliedTime, serverName: serverName || null },
       });
     } else {
       await logAudit({
@@ -86,7 +107,7 @@ export async function POST(req: Request) {
         action: 'agent_report_failed',
         resourceType: 'agent',
         resourceId: agent.id,
-        metadata: { error: errorMessage || 'unknown error', appliedAt: appliedTime },
+        metadata: { error: errorMessage || 'unknown error', appliedAt: appliedTime, serverName: serverName || null },
       });
     }
 

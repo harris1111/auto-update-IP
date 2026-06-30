@@ -10,6 +10,7 @@ type Config struct {
 	AllowlistAPIURL     string
 	AgentToken          string
 	AppSigningSecret    string
+	ServerName          string
 	NftTable            string
 	NftDbV4Set          string
 	NftDbV6Set          string
@@ -23,6 +24,7 @@ func Load() (*Config, error) {
 		AllowlistAPIURL:      getEnv("ALLOWLIST_API_URL", "https://update.0err.com/api/agent/allowlist"),
 		AgentToken:           os.Getenv("AGENT_TOKEN"),
 		AppSigningSecret:     os.Getenv("APP_SIGNING_SECRET"),
+		ServerName:           getEnv("SERVER_NAME", "dedi-1"),
 		NftTable:             getEnv("NFT_TABLE", "shared_dedi"),
 		NftDbV4Set:           getEnv("NFT_DB_V4_SET", "db_allow_v4"),
 		NftDbV6Set:           getEnv("NFT_DB_V6_SET", "db_allow_v6"),
@@ -59,6 +61,9 @@ func (c *Config) Validate() error {
 	}
 	if c.AppSigningSecret == "" {
 		return fmt.Errorf("APP_SIGNING_SECRET must not be empty")
+	}
+	if c.ServerName == "" {
+		return fmt.Errorf("SERVER_NAME must not be empty")
 	}
 	return nil
 }

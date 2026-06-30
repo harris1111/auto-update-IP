@@ -21,12 +21,24 @@ interface AgentToken {
   lastUsedAt: string | null;
 }
 
+interface Server {
+  id: string;
+  name: string;
+  lastSeenAt: string | null;
+  createdAt: string;
+  entryCount: number;
+}
+
+type Tab = 'passkeys' | 'tokens' | 'servers';
+
 export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [tokens, setTokens] = useState<AgentToken[]>([]);
+  const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>('passkeys');
 
   const [newPasskeyName, setNewPasskeyName] = useState('');
   const [newTokenName, setNewTokenName] = useState('');
@@ -47,17 +59,14 @@ export default function SettingsPage() {
 
       if (meData.user.id) {
         const pkRes = await fetch(`/api/auth/passkey/list?userId=${meData.user.id}`).catch(() => null);
-        if (pkRes && pkRes.ok) {
-          const pkData = await pkRes.json();
-          setPasskeys(pkData);
-        }
+        if (pkRes && pkRes.ok) setPasskeys(await pkRes.json());
       }
 
       const tokenRes = await fetch('/api/agent/token');
-      if (tokenRes.ok) {
-        const tokenData = await tokenRes.json();
-        setTokens(tokenData);
-      }
+      if (tokenRes.ok) setTokens(await tokenRes.json());
+
+      const svRes = await fetch('/api/servers');
+      if (svRes.ok) setServers(await svRes.json());
     } catch (e) {
       console.error(e);
     } finally {
@@ -137,6 +146,23 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteServer = async (serverId: string) => {
+    if (!confirm('Delete this server? It will be re-registered if the agent checks in again.')) return;
+
+    try {
+      const res = await fetch(`/api/servers?id=${serverId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setSuccess('Server deleted.');
+        await fetchSettingsData();
+      }
+    } catch (err) {
+      setError('Failed to delete server');
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -152,7 +178,7 @@ export default function SettingsPage() {
       <main className="container animate-fade-in" style={{ flex: 1 }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>System Settings</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
-          Configure passkey authentication credentials and manage daemon credentials for the firewall agent.
+          Configure passkey credentials, manage agent tokens, and view registered servers.
         </p>
 
         {error && (
@@ -167,7 +193,20 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="grid grid-2 gap-3">
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+          {(['passkeys', 'tokens', 'servers'] as Tab[]).map(tab => (
+            <button
+              key={tab}
+              className={`btn ${activeTab === tab ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}
+              onClick={() => { setActiveTab(tab); setError(''); setSuccess(''); }}
+            >
+              {tab === 'passkeys' ? 'Passkeys' : tab === 'tokens' ? 'Agent Tokens' : 'Servers'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'passkeys' && (
           <div className="card" style={{ height: 'fit-content' }}>
             <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Registered Passkeys</h3>
 
@@ -205,7 +244,9 @@ export default function SettingsPage() {
               </button>
             </form>
           </div>
+        )}
 
+        {activeTab === 'tokens' && (
           <div className="card" style={{ height: 'fit-content' }}>
             <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Firewall Agent Tokens</h3>
 
@@ -254,7 +295,63 @@ export default function SettingsPage() {
               </button>
             </form>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'servers' && (
+          <div className="card" style={{ height: 'fit-content' }}>
+            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Registered Servers</h3>
+
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+              Servers are auto-registered when a firewall agent checks in with a unique <code>SERVER_NAME</code>.
+              Each server receives rules you explicitly assign, or all rules when no servers are selected.
+            </p>
+
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Server Name</th>
+                    <th>Rules Applied</th>
+                    <th>Last Check-In</th>
+                    <th>Registered</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {servers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                        No servers registered yet. Start a firewall agent with <code>SERVER_NAME=your-server</code> to register.
+                      </td>
+                    </tr>
+                  ) : (
+                    servers.map(s => (
+                      <tr key={s.id}>
+                        <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.name}</td>
+                        <td>{s.entryCount}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          {s.lastSeenAt ? new Date(s.lastSeenAt).toLocaleString() : 'Never'}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          {new Date(s.createdAt).toLocaleDateString()}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            className="btn btn-danger"
+                            style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem' }}
+                            onClick={() => handleDeleteServer(s.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </main>
     </>
   );

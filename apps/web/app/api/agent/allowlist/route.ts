@@ -12,7 +12,6 @@ async function authenticateAgent(req: Request) {
   const tokenStr = authHeader.substring(7).trim();
   const hashedToken = sha256(tokenStr);
 
-  // Check env variable fallback
   if (process.env.AGENT_TOKEN && tokenStr === process.env.AGENT_TOKEN) {
     return { name: 'env-default', id: 'env-default' };
   }
@@ -26,7 +25,6 @@ async function authenticateAgent(req: Request) {
     });
 
     if (agentToken) {
-      // Update last used at
       await prisma.agentToken.update({
         where: { id: agentToken.id },
         data: { lastUsedAt: new Date() },
@@ -34,10 +32,43 @@ async function authenticateAgent(req: Request) {
       return agentToken;
     }
   } catch (error) {
-    // If DB is offline
+    // Offline
   }
 
   return null;
+}
+
+async function getOrCreateServer(serverName: string): Promise<string | null> {
+  if (!serverName || serverName.trim().length === 0) return null;
+  const name = serverName.trim().toLowerCase().substring(0, 64);
+
+  try {
+    const existing = await prisma.server.findUnique({ where: { name } });
+    if (existing) {
+      await prisma.server.update({
+        where: { id: existing.id },
+        data: { lastSeenAt: new Date() },
+      });
+      return existing.id;
+    }
+
+    const created = await prisma.server.create({
+      data: { name, lastSeenAt: new Date() },
+    });
+    return created.id;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
+      const existing = await prisma.server.findUnique({ where: { name } });
+      if (existing) {
+        await prisma.server.update({
+          where: { id: existing.id },
+          data: { lastSeenAt: new Date() },
+        });
+        return existing.id;
+      }
+    }
+    return null;
+  }
 }
 
 export async function GET(req: Request) {
@@ -46,22 +77,43 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const url = new URL(req.url);
+  const serverName = url.searchParams.get('server') || req.headers.get('x-agent-server') || '';
+
+  let serverId: string | null = null;
+  if (serverName) {
+    serverId = await getOrCreateServer(serverName);
+  }
+
   try {
     const now = new Date();
-    // Fetch active allowlist entries
     let activeEntries: any[] = [];
     try {
+      const whereClause: any = {
+        enabled: true,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      };
+
+      if (serverId) {
+        whereClause.AND = [
+          {
+            OR: [
+              { servers: { none: {} } },
+              { servers: { some: { id: serverId } } },
+            ],
+          },
+        ];
+      }
+
       activeEntries = await prisma.allowlistEntry.findMany({
-        where: {
-          enabled: true,
-          OR: [
-            { expiresAt: null }, // Persistent
-            { expiresAt: { gt: now } }, // Non-expired temporary
-          ],
-        },
+        where: whereClause,
+        include: { servers: { select: { id: true, name: true } } },
       });
     } catch (e) {
-      // Fallback in case of DB disconnection
+      // DB offline
     }
 
     const entriesPayload = activeEntries.map((e: any) => ({
@@ -71,17 +123,18 @@ export async function GET(req: Request) {
       ports: e.ports,
       mode: e.isPersistent ? 'persistent' : 'temporary',
       expiresAt: e.expiresAt ? e.expiresAt.toISOString() : null,
+      servers: e.servers ? e.servers.map((s: any) => s.name) : [],
     }));
 
     const responsePayload = {
       generatedAt: now.toISOString(),
-      version: activeEntries.length > 0 
-        ? Math.max(...activeEntries.map((e: any) => e.updatedAt.getTime())) 
+      version: activeEntries.length > 0
+        ? Math.max(...activeEntries.map((e: any) => e.updatedAt.getTime()))
         : Date.now(),
       entries: entriesPayload,
+      serverId: serverId || null,
     };
 
-    // Calculate signature over canonical JSON of the response payload (which excludes signature field)
     const canonicalStr = canonicalJsonStringify(responsePayload);
     const signingSecret = process.env.APP_SIGNING_SECRET || 'fallback-signing-secret-key-at-least-32-chars';
     const signature = signPayload(canonicalStr, signingSecret);
@@ -91,12 +144,18 @@ export async function GET(req: Request) {
       signature,
     };
 
+    const metadata: any = { count: activeEntries.length };
+    if (serverId) {
+      metadata.serverId = serverId;
+      metadata.serverName = serverName;
+    }
+
     await logAudit({
       actorUserId: null,
       action: 'agent_allowlist_fetched',
       resourceType: 'agent',
       resourceId: agent.id,
-      metadata: { count: activeEntries.length },
+      metadata,
     });
 
     return NextResponse.json(signedResponse);

@@ -14,7 +14,8 @@ export async function GET() {
   
   try {
     const entries = await prisma.allowlistEntry.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { servers: { select: { id: true, name: true, lastSeenAt: true } } }
     });
     return NextResponse.json(entries);
   } catch (error) {
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired step-up token' }, { status: 403 });
     }
 
-    const { ipCidr, label, reason, portGroupKeys, mode, ttlMinutes } = payload;
+    const { ipCidr, label, reason, portGroupKeys, mode, ttlMinutes, serverIds } = payload;
 
     if (!ipCidr || !label || !portGroupKeys || !mode) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -102,6 +103,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: expErr.message }, { status: 400 });
     }
 
+    // Build connect for serverIds (if provided, connect specific servers)
+    const serverConnect: any = serverIds && Array.isArray(serverIds) && serverIds.length > 0
+      ? { connect: serverIds.map((id: string) => ({ id })) }
+      : undefined;
+
     // Try to write entry to database
     let entry;
     try {
@@ -117,6 +123,7 @@ export async function POST(req: Request) {
           expiresAt,
           createdBy: session.userId,
           updatedBy: session.userId,
+          ...(serverConnect ? { servers: serverConnect } : {}),
         }
       });
     } catch (dbErr) {
@@ -143,7 +150,7 @@ export async function POST(req: Request) {
       action: 'allowlist_created',
       resourceType: 'allowlist_entry',
       resourceId: entry.id,
-      metadata: { ipCidr: normalizedIp, ports: uniquePorts, mode },
+      metadata: { ipCidr: normalizedIp, ports: uniquePorts, mode, serverIds: serverIds || [] },
     });
 
     return NextResponse.json(entry);

@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import StepUpModal from '@/components/StepUpModal';
 
+interface Server {
+  id: string;
+  name: string;
+  lastSeenAt: string | null;
+  createdAt: string;
+}
+
 interface AllowlistEntry {
   id: string;
   ipCidr: string;
@@ -18,6 +25,16 @@ interface AllowlistEntry {
   createdBy: string;
   createdAt: string;
   lastAppliedAt: string | null;
+  servers: Server[];
+}
+
+interface SyncStatus {
+  id: string;
+  name: string;
+  status: string;
+  lastSync: string | null;
+  lastError: string | null;
+  lastSeenAt: string | null;
 }
 
 export default function DashboardPage() {
@@ -26,20 +43,19 @@ export default function DashboardPage() {
   const [currentIpData, setCurrentIpData] = useState<any>(null);
   const [entries, setEntries] = useState<AllowlistEntry[]>([]);
   const [portGroups, setPortGroups] = useState<any[]>([]);
-  const [syncStatus, setSyncStatus] = useState<any>({ status: 'unknown', time: null });
-  
-  // Modals & step-up states
+  const [allServers, setAllServers] = useState<Server[]>([]);
+  const [syncStatuses, setSyncStatuses] = useState<SyncStatus[]>([]);
+
   const [stepUpOpen, setStepUpOpen] = useState(false);
   const [stepUpAction, setStepUpAction] = useState('');
   const [stepUpPayload, setStepUpPayload] = useState<any>(null);
   const [stepUpCallback, setStepUpCallback] = useState<(token: string) => void>(() => () => {});
-  
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchData = async () => {
     try {
-      // 1. Verify User
       const meRes = await fetch('/api/auth/me');
       if (!meRes.ok) {
         router.push('/login');
@@ -48,33 +64,20 @@ export default function DashboardPage() {
       const meData = await meRes.json();
       setUser(meData.user);
 
-      // 2. Fetch IP
       const ipRes = await fetch('/api/current-ip');
-      if (ipRes.ok) {
-        const ipData = await ipRes.json();
-        setCurrentIpData(ipData);
-      }
+      if (ipRes.ok) setCurrentIpData(await ipRes.json());
 
-      // 3. Fetch Allowlist Entries
       const listRes = await fetch('/api/allowlist');
-      if (listRes.ok) {
-        const listData = await listRes.json();
-        setEntries(listData);
-      }
+      if (listRes.ok) setEntries(await listRes.json());
 
-      // 4. Fetch Port Groups
       const pgRes = await fetch('/api/port-groups');
-      if (pgRes.ok) {
-        const pgData = await pgRes.json();
-        setPortGroups(pgData);
-      }
+      if (pgRes.ok) setPortGroups(await pgRes.json());
 
-      // Get sync status (simulated/cached via custom API or default values)
-      // Standard sync check: look at last sync status set by agent reports
-      setSyncStatus({
-        status: 'success',
-        time: new Date().toISOString()
-      });
+      const svRes = await fetch('/api/servers');
+      if (svRes.ok) setAllServers(await svRes.json());
+
+      const syncRes = await fetch('/api/agent/sync-status');
+      if (syncRes.ok) setSyncStatuses(await syncRes.json());
     } catch (e) {
       console.error(e);
     } finally {
@@ -84,7 +87,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
-    // Poll updates every 10 seconds to keep sync indicator live
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -96,7 +98,6 @@ export default function DashboardPage() {
     setStepUpOpen(true);
   };
 
-  // Quick action: Allow current IP for 2 hours (120 minutes)
   const handleQuickAllow = () => {
     const payload = {
       ipCidr: currentIpData ? `${currentIpData.ip}/32` : '127.0.0.1/32',
@@ -105,6 +106,7 @@ export default function DashboardPage() {
       portGroupKeys: ['all_safe'],
       mode: 'temporary',
       ttlMinutes: 120,
+      serverIds: allServers.map(s => s.id),
     };
 
     triggerStepUp('allowlist.create', payload, async (stepUpToken) => {
@@ -126,7 +128,6 @@ export default function DashboardPage() {
     });
   };
 
-  // Revoke specific entry
   const handleRevoke = (id: string) => {
     const payload = {};
     triggerStepUp(`allowlist.revoke:${id}`, payload, async (stepUpToken) => {
@@ -148,7 +149,6 @@ export default function DashboardPage() {
     });
   };
 
-  // Revoke all entries (emergency block)
   const handleRevokeAll = () => {
     const payload = {};
     triggerStepUp('allowlist.revoke-all', payload, async (stepUpToken) => {
@@ -170,8 +170,8 @@ export default function DashboardPage() {
     });
   };
 
-  const filteredEntries = entries.filter(e => 
-    e.ipCidr.includes(searchTerm) || 
+  const filteredEntries = entries.filter(e =>
+    e.ipCidr.includes(searchTerm) ||
     e.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (e.reason && e.reason.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -187,7 +187,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Format TTL display
   const getRemainingTime = (expiryStr: string | null) => {
     if (!expiryStr) return 'Persistent';
     const diff = new Date(expiryStr).getTime() - Date.now();
@@ -201,9 +200,8 @@ export default function DashboardPage() {
   return (
     <>
       <Header />
-      
+
       <main className="container animate-fade-in" style={{ flex: 1 }}>
-        {/* Warning Banner if firewall agent hasn't synchronized */}
         {entries.some(e => e.enabled && !e.lastAppliedAt) && (
           <div className="alert-banner" id="sync-warning">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -215,7 +213,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Dashboard Grid Header Stats */}
         <section className="grid grid-3 gap-3" style={{ marginBottom: '2rem' }}>
           <div className="card">
             <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Current Detected IP</div>
@@ -228,14 +225,26 @@ export default function DashboardPage() {
           </div>
 
           <div className="card">
-            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Firewall Agent Sync</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span className="badge badge-success">Sync Active</span>
-              <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>Online</span>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Last sync reported: {syncStatus.time ? new Date(syncStatus.time).toLocaleTimeString() : 'Just now'}
-            </p>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.5rem' }}>Agent Sync Status</div>
+            {syncStatuses.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No agents connected</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {syncStatuses.map(ss => (
+                  <div key={ss.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                    <span className={`badge ${ss.status === 'success' ? 'badge-success' : ss.status === 'error' ? 'badge-danger' : 'badge-warning'}`}>
+                      {ss.status === 'success' ? 'Online' : ss.status === 'error' ? 'Error' : 'Waiting'}
+                    </span>
+                    <span style={{ fontWeight: 600 }}>{ss.name}</span>
+                    {ss.lastSync && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                        @ {new Date(ss.lastSync).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -244,6 +253,11 @@ export default function DashboardPage() {
               <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>
                 {activeEntries.length} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>Active allowed IPs</span>
               </div>
+              {allServers.length > 0 && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {allServers.length} server{allServers.length !== 1 ? 's' : ''} registered
+                </div>
+              )}
             </div>
             <button className="btn btn-secondary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => router.push('/allowlist/new')} id="new-allow-btn">
               Add Custom Rule
@@ -251,7 +265,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Search Bar & Emergency Actions */}
         <section style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <input
             type="text"
@@ -271,10 +284,9 @@ export default function DashboardPage() {
           </button>
         </section>
 
-        {/* Active Allowlist Table */}
         <section style={{ marginBottom: '3rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Active Allowed Rules ({activeEntries.length})</h2>
-          
+
           <div className="table-container">
             <table>
               <thead>
@@ -283,6 +295,7 @@ export default function DashboardPage() {
                   <th>IP/CIDR</th>
                   <th>Label</th>
                   <th>Ports</th>
+                  <th>Servers</th>
                   <th>Mode</th>
                   <th>Expires In</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
@@ -291,7 +304,7 @@ export default function DashboardPage() {
               <tbody>
                 {activeEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                       No active IP rules matching filters.
                     </td>
                   </tr>
@@ -304,6 +317,11 @@ export default function DashboardPage() {
                       <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{e.ipCidr}</td>
                       <td>{e.label}</td>
                       <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{e.ports.join(', ')}</td>
+                      <td style={{ fontSize: '0.8rem' }}>
+                        {e.servers && e.servers.length > 0
+                          ? e.servers.map(s => s.name).join(', ')
+                          : <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>All servers</span>}
+                      </td>
                       <td>
                         <span className={`badge ${e.isPersistent ? 'badge-warning' : 'badge-success'}`}>
                           {e.isPersistent ? 'Persistent' : 'Temporary'}
@@ -325,10 +343,9 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Expired / Revoked History Table */}
         <section>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>Expired or Revoked Rules ({expiredOrDisabled.length})</h2>
-          
+
           <div className="table-container" style={{ opacity: 0.75 }}>
             <table>
               <thead>
@@ -337,6 +354,7 @@ export default function DashboardPage() {
                   <th>IP/CIDR</th>
                   <th>Label</th>
                   <th>Ports</th>
+                  <th>Servers</th>
                   <th>Mode</th>
                   <th>Expired At</th>
                 </tr>
@@ -344,7 +362,7 @@ export default function DashboardPage() {
               <tbody>
                 {expiredOrDisabled.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                       No history entries.
                     </td>
                   </tr>
@@ -357,6 +375,11 @@ export default function DashboardPage() {
                       <td style={{ fontFamily: 'monospace' }}>{e.ipCidr}</td>
                       <td>{e.label}</td>
                       <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{e.ports.join(', ')}</td>
+                      <td style={{ fontSize: '0.8rem' }}>
+                        {e.servers && e.servers.length > 0
+                          ? e.servers.map(s => s.name).join(', ')
+                          : <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>All servers</span>}
+                      </td>
                       <td>{e.isPersistent ? 'Persistent' : 'Temporary'}</td>
                       <td>
                         {e.expiresAt ? new Date(e.expiresAt).toLocaleString() : 'Revoked'}

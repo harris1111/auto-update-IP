@@ -78,6 +78,26 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now firewall-agent
 ```
 
+### Per-server agent name
+Set `SERVER_NAME=dedi-1` in `/opt/update-allowlist/apps/firewall-agent/.env`. Each server needs a unique name. The agent auto-registers with the web app on first check-in.
+
+## Multi-Server Deployment
+
+On each additional server:
+```bash
+git clone git@github.com:harris1111/auto-update-IP.git /opt/update-allowlist
+cd /opt/update-allowlist/apps/firewall-agent
+cp .env.example .env
+# Set AGENT_TOKEN, APP_SIGNING_SECRET, ALLOWLIST_API_URL (point to the web app)
+# Set SERVER_NAME=dedi-2 (or any UNIQUE name)
+go build -o firewall-agent ./cmd/firewall-agent
+sudo cp /opt/update-allowlist/infra/systemd/firewall-agent.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now firewall-agent
+```
+
+The web app will auto-register the server. In the UI, you can then select which servers each allowlist rule applies to.
+
 ## First Login
 
 1. Visit `http://update.0err.com`

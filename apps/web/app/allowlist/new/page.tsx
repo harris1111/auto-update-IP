@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import StepUpModal from '@/components/StepUpModal';
 
+interface Server {
+  id: string;
+  name: string;
+  lastSeenAt: string | null;
+}
+
 export default function NewAllowlistPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -12,17 +18,18 @@ export default function NewAllowlistPage() {
   const [label, setLabel] = useState('');
   const [reason, setReason] = useState('');
   const [mode, setMode] = useState<'temporary' | 'persistent'>('temporary');
-  const [ttlOption, setTtlOption] = useState('120'); // Minutes as string
+  const [ttlOption, setTtlOption] = useState('120');
   const [customTtl, setCustomTtl] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>(['all_safe']);
-  
+  const [selectedServers, setSelectedServers] = useState<string[]>([]);
+
   const [currentIp, setCurrentIp] = useState('');
   const [portGroups, setPortGroups] = useState<any[]>([]);
+  const [allServers, setAllServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Step-Up Modal state
   const [stepUpOpen, setStepUpOpen] = useState(false);
   const [stepUpPayload, setStepUpPayload] = useState<any>(null);
 
@@ -37,7 +44,6 @@ export default function NewAllowlistPage() {
         const meData = await meRes.json();
         setUser(meData.user);
 
-        // Fetch current IP
         const ipRes = await fetch('/api/current-ip');
         if (ipRes.ok) {
           const ipData = await ipRes.json();
@@ -45,11 +51,16 @@ export default function NewAllowlistPage() {
           setIpCidr(`${ipData.ip}/32`);
         }
 
-        // Fetch port groups
         const pgRes = await fetch('/api/port-groups');
-        if (pgRes.ok) {
-          const pgData = await pgRes.json();
-          setPortGroups(pgData);
+        if (pgRes.ok) setPortGroups(await pgRes.json());
+
+        const svRes = await fetch('/api/servers');
+        if (svRes.ok) {
+          const servers = await svRes.json();
+          setAllServers(servers);
+          if (servers.length > 0) {
+            setSelectedServers(servers.map((s: Server) => s.id));
+          }
         }
       } catch (e) {
         console.error(e);
@@ -61,15 +72,21 @@ export default function NewAllowlistPage() {
   }, []);
 
   const handleGroupToggle = (key: string) => {
-    setSelectedGroups(prev => 
+    setSelectedGroups(prev =>
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
     );
   };
 
+  const handleServerToggle = (serverId: string) => {
+    setSelectedServers(prev =>
+      prev.includes(serverId)
+        ? prev.filter(id => id !== serverId)
+        : [...prev, serverId]
+    );
+  };
+
   const handleUseCurrentIp = () => {
-    if (currentIp) {
-      setIpCidr(`${currentIp}/32`);
-    }
+    if (currentIp) setIpCidr(`${currentIp}/32`);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -103,7 +120,7 @@ export default function NewAllowlistPage() {
       }
     }
 
-    const payload = {
+    const payload: any = {
       ipCidr: ipCidr.trim(),
       label: label.trim(),
       reason: reason.trim() || undefined,
@@ -111,6 +128,10 @@ export default function NewAllowlistPage() {
       mode,
       ttlMinutes: mode === 'temporary' ? ttlVal : undefined,
     };
+
+    if (allServers.length > 0 && selectedServers.length < allServers.length) {
+      payload.serverIds = selectedServers;
+    }
 
     setStepUpPayload(payload);
     setStepUpOpen(true);
@@ -226,6 +247,40 @@ export default function NewAllowlistPage() {
                 ))}
               </div>
             </div>
+
+            {allServers.length > 0 && (
+              <div className="form-group">
+                <label className="form-label">
+                  Target Servers
+                  {selectedServers.length === allServers.length && (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>(All selected = rule applies everywhere)</span>
+                  )}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  {allServers.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.925rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedServers.includes(s.id)}
+                        onChange={() => handleServerToggle(s.id)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <div>
+                        <strong>{s.name}</strong>
+                        {s.lastSeenAt && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                            (last seen {new Date(s.lastSeenAt).toLocaleString()})
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  Deselect specific servers to limit this rule. Selecting none means the rule applies to all registered servers.
+                </p>
+              </div>
+            )}
 
             <div className="form-group" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '200px' }}>

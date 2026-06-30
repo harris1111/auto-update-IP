@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -38,13 +39,15 @@ type ReportResponse struct {
 type Client struct {
 	apiURL     string
 	agentToken string
+	serverName string
 	httpClient *http.Client
 }
 
-func NewClient(apiURL, agentToken string) *Client {
+func NewClient(apiURL, agentToken, serverName string) *Client {
 	return &Client{
 		apiURL:     apiURL,
 		agentToken: agentToken,
+		serverName: serverName,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -52,7 +55,7 @@ func NewClient(apiURL, agentToken string) *Client {
 }
 
 func (c *Client) FetchAllowlist() ([]byte, error) {
-	req, err := http.NewRequest("GET", c.apiURL, nil)
+	req, err := http.NewRequest("GET", c.addServerParam(c.apiURL), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -98,6 +101,7 @@ func (c *Client) ReportStatus(status, errorMessage string) error {
 	}
 
 	reportURL := replaceSuffix(c.apiURL, "/allowlist", "/report")
+	reportURL = c.addServerParam(reportURL)
 
 	req, err := http.NewRequest("POST", reportURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
@@ -125,4 +129,14 @@ func replaceSuffix(s, old, new string) string {
 		return s[:len(s)-len(old)] + new
 	}
 	return s
+}
+
+func (c *Client) addServerParam(url string) string {
+	if c.serverName == "" {
+		return url
+	}
+	if strings.Contains(url, "?") {
+		return url + "&server=" + c.serverName
+	}
+	return url + "?server=" + c.serverName
 }

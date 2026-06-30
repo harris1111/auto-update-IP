@@ -103,6 +103,7 @@ services:
       ALLOWLIST_API_URL: "http://127.0.0.1:52118/api/agent/allowlist"
       AGENT_TOKEN: ${AGENT_TOKEN}
       APP_SIGNING_SECRET: ${APP_SIGNING_SECRET}
+      SERVER_NAME: ${SERVER_NAME:-dedi-1}
       NFT_TABLE: shared_dedi
       NFT_DB_V4_SET: db_allow_v4
       NFT_DB_V6_SET: db_allow_v6

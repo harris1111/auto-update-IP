@@ -10,6 +10,7 @@ ExecStart=/home/debian/infra/update-allowlist/apps/firewall-agent/firewall-agent
 Restart=always
 RestartSec=10
 EnvironmentFile=/home/debian/infra/update-allowlist/apps/firewall-agent/.env
+Environment=SERVER_NAME=${SERVER_NAME:-dedi-1}
 
 [Install]
 WantedBy=multi-user.target

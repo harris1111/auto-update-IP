@@ -24,7 +24,7 @@ func New(cfg *config.Config) (*Agent, error) {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	apiClient := api.NewClient(cfg.AllowlistAPIURL, cfg.AgentToken)
+	apiClient := api.NewClient(cfg.AllowlistAPIURL, cfg.AgentToken, cfg.ServerName)
 	nftMgr := nftables.NewManager(cfg.NftTable, cfg.NftDbV4Set, cfg.NftDbV6Set, cfg.DryRun)
 
 	if err := nftMgr.VerifyTableExists(); err != nil {
@@ -42,8 +42,8 @@ func (a *Agent) Run() {
 	ticker := time.NewTicker(time.Duration(a.cfg.ApplyIntervalSeconds) * time.Second)
 	defer ticker.Stop()
 
-	log.Printf("Firewall agent started (interval=%ds, dry_run=%v, fail_closed=%v)",
-		a.cfg.ApplyIntervalSeconds, a.cfg.DryRun, a.cfg.FailClosed)
+	log.Printf("Firewall agent started (server=%s, interval=%ds, dry_run=%v, fail_closed=%v)",
+		a.cfg.ServerName, a.cfg.ApplyIntervalSeconds, a.cfg.DryRun, a.cfg.FailClosed)
 
 	a.cycle()
 
