@@ -81,8 +81,8 @@ export async function POST(req: Request) {
         { key: 'postgres', ports: [51032] },
         { key: 'mongo', ports: [51033] },
         { key: 'minio', ports: [51034] },
-        { key: 'redis', ports: [50004] },
-        { key: 'all', ports: [51032, 51033, 51034, 50004] }
+        { key: 'redis', ports: [51035] },
+        { key: 'all', ports: [51032, 51033, 51034, 51035] }
       ];
       portGroupKeys.forEach((key: string) => {
         const fg = fallbackGroups.find(g => g.key === key);
