@@ -92,36 +92,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  firewall-agent:
-    build:
-      context: apps/firewall-agent
-      dockerfile: Dockerfile
-    container_name: update-firewall-agent
-    restart: unless-stopped
-    network_mode: host
-    privileged: true
-    environment:
-      ALLOWLIST_API_URL: "http://127.0.0.1:52118/api/agent/allowlist"
-      AGENT_TOKEN: ${AGENT_TOKEN}
-      APP_SIGNING_SECRET: ${APP_SIGNING_SECRET}
-      SERVER_NAME: ${SERVER_NAME:-dedi-1}
-      NFT_TABLE: shared_dedi
-      NFT_DB_V4_SET: db_allow_v4
-      NFT_DB_V6_SET: db_allow_v6
-      APPLY_INTERVAL_SECONDS: "15"
-      FAIL_CLOSED: "true"
-      DRY_RUN: "false"
-    depends_on:
-      - web
-    labels:
-      com.shared-dedi.owner: debian
-      com.shared-dedi.stack: update-allowlist
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 volumes:
   pgdata:
   redisdata:
