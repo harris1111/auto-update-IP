@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma';
 export const DEFAULT_PORT_GROUPS = [
   { key: 'postgres', name: 'PostgreSQL (DevDB)', description: 'Port 15432', ports: [15432], enabled: true, publicExposureAllowed: true },
   { key: 'mongo', name: 'MongoDB (DevDB)', description: 'Port 27017', ports: [27017], enabled: true, publicExposureAllowed: true },
-  { key: 'minio', name: 'MinIO API (DevDB)', description: 'Port 19000', ports: [19000], enabled: true, publicExposureAllowed: true },
-  { key: 'all', name: 'All Dev Databases', description: 'Ports 15432, 27017, 19000', ports: [15432, 27017, 19000], enabled: true, publicExposureAllowed: true }
+  { key: 'minio', name: 'MinIO API', description: 'Port 19000', ports: [19000], enabled: true, publicExposureAllowed: true },
+  { key: 'redis', name: 'Redis (DevDB)', description: 'Port 50004', ports: [50004], enabled: true, publicExposureAllowed: true },
+  { key: 'all', name: 'All Dev Databases', description: 'Ports 15432, 27017, 19000, 50004', ports: [15432, 27017, 19000, 50004], enabled: true, publicExposureAllowed: true }
 ];
 
 export async function GET() {
