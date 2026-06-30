@@ -293,7 +293,7 @@ export default function PortGroupsPage() {
                         {g.enabled ? 'On' : 'Off'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button className="btn btn-secondary" style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem', marginRight: '0.25rem' }} onClick={() => handleEdit(g)}>
                         Edit
                       </button>
