@@ -38,7 +38,7 @@ Ensure ports are published only on `127.0.0.1`.
 
 1. Configure the environment variables in `/home/debian/infra/update-allowlist/apps/web/.env`:
    ```env
-   DATABASE_URL="postgresql://postgres:devpassword@127.0.0.1:5432/allowlist"
+   DATABASE_URL="postgresql://postgres:your-postgres-password@127.0.0.1:5432/allowlist"
    REDIS_URL="redis://127.0.0.1:6379"
    SESSION_SECRET="your-32-char-random-session-secret"
    APP_SIGNING_SECRET="your-32-char-random-signing-secret"
@@ -127,7 +127,7 @@ Instead of the host-level setup, you can launch the entire integrated stack (inc
 
 1. Generate migrations on the host:
    ```bash
-   DATABASE_URL="postgresql://postgres:devpassword@localhost:5432/allowlist" pnpm --filter web exec prisma migrate dev --name init
+   DATABASE_URL="postgresql://postgres:your-postgres-password@localhost:5432/allowlist" pnpm --filter web exec prisma migrate dev --name init
    ```
 2. Build and launch all containers in background daemon mode:
    ```bash

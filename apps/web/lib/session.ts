@@ -1,9 +1,18 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'fallback-super-secret-session-key-at-least-32-chars-long'
-);
+let _secretKey: Uint8Array | null = null;
+
+function getSecretKey(): Uint8Array {
+  if (!_secretKey) {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret) {
+      throw new Error('Missing SESSION_SECRET environment variable');
+    }
+    _secretKey = new TextEncoder().encode(secret);
+  }
+  return _secretKey;
+}
 
 export interface SessionPayload {
   userId: string;
@@ -17,12 +26,12 @@ export async function encrypt(payload: any, expires: string = '24h'): Promise<st
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(expires)
-    .sign(SECRET_KEY);
+    .sign(getSecretKey());
 }
 
 export async function decrypt(input: string): Promise<any> {
   try {
-    const { payload } = await jwtVerify(input, SECRET_KEY, {
+    const { payload } = await jwtVerify(input, getSecretKey(), {
       algorithms: ['HS256'],
     });
     return payload;

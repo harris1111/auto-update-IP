@@ -8,9 +8,14 @@ function escapeShell(s: string): string {
 }
 
 function buildBootstrapCommand(serverName: string): string {
-  const token = process.env.AGENT_TOKEN || 'YOUR_AGENT_TOKEN';
-  const signingSecret = process.env.APP_SIGNING_SECRET || 'YOUR_SIGNING_SECRET';
+  const token = process.env.AGENT_TOKEN;
+  const signingSecret = process.env.APP_SIGNING_SECRET;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://update.0err.com/api/agent/allowlist';
+
+  if (!token || !signingSecret) {
+    return `# Error: cannot generate bootstrap command — server missing required secrets.
+# Ensure AGENT_TOKEN and APP_SIGNING_SECRET are set in the web container environment.`;
+  }
 
   const escServer = escapeShell(serverName);
   const escToken = escapeShell(token);

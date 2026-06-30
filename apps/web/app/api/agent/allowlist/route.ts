@@ -136,7 +136,11 @@ export async function GET(req: Request) {
     };
 
     const canonicalStr = canonicalJsonStringify(responsePayload);
-    const signingSecret = process.env.APP_SIGNING_SECRET || 'fallback-signing-secret-key-at-least-32-chars';
+    const signingSecret = process.env.APP_SIGNING_SECRET;
+    if (!signingSecret) {
+      console.error('[allowlist] APP_SIGNING_SECRET not set — refusing to serve agent payloads');
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
     const signature = signPayload(canonicalStr, signingSecret);
 
     const signedResponse = {

@@ -6,7 +6,7 @@ services:
     container_name: update-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: devpassword
+      POSTGRES_PASSWORD: dev-only-not-for-production
       POSTGRES_DB: allowlist
     ports:
       - "127.0.0.1:5432:5432"
@@ -33,7 +33,7 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: update-web
     environment:
-      DATABASE_URL: "postgresql://postgres:devpassword@postgres:5432/allowlist"
+      DATABASE_URL: "postgresql://postgres:dev-only-not-for-production@postgres:5432/allowlist"
       REDIS_URL: "redis://redis:6379"
       SESSION_SECRET: "compose-dev-session-secret-at-least-32-chars"
       APP_SIGNING_SECRET: "compose-dev-signing-secret-at-least-32-chars"
