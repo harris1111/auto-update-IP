@@ -39,14 +39,11 @@ export function normalizeIpCidr(value: string): { ipCidr: string; version: numbe
   }
 }
 
-export const ALLOWED_PORTS = [15432, 27017, 19000];
+export const ALLOWED_PORT_RANGE = { min: 50000, max: 60000 };
 
 export function validatePorts(ports: number[]): boolean {
   if (!ports || ports.length === 0) return false;
-  // Reject if contains Redis port 6379
-  if (ports.includes(6379)) return false;
-  
-  return ports.every(port => ALLOWED_PORTS.includes(port));
+  return ports.every(port => port >= ALLOWED_PORT_RANGE.min && port <= ALLOWED_PORT_RANGE.max);
 }
 
 export function validateExpiry(

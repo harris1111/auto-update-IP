@@ -9,10 +9,10 @@ function sha256(input) {
 
 async function main() {
   const DEFAULT_PORT_GROUPS = [
-    { key: 'postgres', name: 'PostgreSQL Gateway', description: 'Port 15432', ports: [15432], enabled: true, publicExposureAllowed: true },
-    { key: 'mongo', name: 'MongoDB Gateway', description: 'Port 27017', ports: [27017], enabled: true, publicExposureAllowed: true },
-    { key: 'minio', name: 'MinIO API Gateway', description: 'Port 19000', ports: [19000], enabled: true, publicExposureAllowed: true },
-    { key: 'all_safe', name: 'All Safe Services', description: 'Ports 15432, 27017, 19000', ports: [15432, 27017, 19000], enabled: true, publicExposureAllowed: true }
+    { key: 'infra', name: 'Infra Stack', description: 'Ports 50000-50012 (Prometheus, Grafana, Loki, DBs, Exporters)', ports: [50000,50001,50002,50003,50004,50005,50006,50007,50008,50009,50010,50011,50012], enabled: true, publicExposureAllowed: true },
+    { key: 'apps', name: 'Application Services', description: 'Ports 52100-52117 (karakeep, komga, kavita, calibre, syncthing, etc.)', ports: [52100,52101,52102,52103,52104,52105,52106,52107,52108,52109,52110,52111,52112,52113,52114,52115,52116,52117], enabled: true, publicExposureAllowed: true },
+    { key: 'kientaosteel', name: 'Kientaosteel Services', description: 'Ports 53000-59001 (kt-frontend, kt-backend, kt-admin, kt-minio)', ports: [53000,55070,55433,58080,59000,59001], enabled: true, publicExposureAllowed: true },
+    { key: 'all', name: 'All Services (50000-60000)', description: 'Full protected range', ports: [], enabled: true, publicExposureAllowed: true }
   ];
 
   for (const pg of DEFAULT_PORT_GROUPS) {
