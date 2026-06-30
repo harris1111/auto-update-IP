@@ -15,9 +15,10 @@ const THEME_LABELS: Record<Theme, string> = {
 interface ThemeContextValue {
   theme: Theme;
   toggle: () => void;
+  setTheme: (t: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', toggle: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', toggle: () => {}, setTheme: () => {} });
 
 export function useTheme() {
   return useContext(ThemeContext);
@@ -58,12 +59,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setThemeDirect = useCallback((t: Theme) => {
+    setTheme(t);
+  }, []);
+
   if (!mounted) {
     return <>{children}</>;
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, toggle, setTheme: setThemeDirect }}>
       {children}
     </ThemeContext.Provider>
   );
