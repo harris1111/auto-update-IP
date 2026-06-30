@@ -24,13 +24,17 @@ function buildBootstrapCommand(serverName: string): string {
 
   return `# Bootstrap firewall-agent on worker "${serverName}"
 # Copy and run this entire block on the worker machine as root:
+# Requires: Debian 12+ / Ubuntu 22.04+ with internet access
 
 export SERVER_NAME='${escServer}'
 export AGENT_TOKEN='${escToken}'
 export APP_SIGNING_SECRET='${escSecret}'
 export ALLOWLIST_API_URL='${escApi}'
 
-apt-get update && apt-get install -y golang git nftables \\
+apt-get update && apt-get install -y git nftables wget \\
+&& { command -v go && go version | grep -qE 'go1\\.(2[1-9]|[3-9][0-9])' ; } \\
+  || { wget -q https://go.dev/dl/go1.23.11.linux-amd64.tar.gz -O /tmp/go.tar.gz && rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz ; } \\
+&& export PATH=/usr/local/go/bin:$PATH \\
 && git clone https://github.com/harris1111/auto-update-IP.git /opt/update-allowlist \\
 && cat > /opt/update-allowlist/apps/firewall-agent/.env << 'ENVEOF'
 ALLOWLIST_API_URL='${escApi}'
@@ -45,6 +49,7 @@ FAIL_CLOSED=true
 DRY_RUN=false
 ENVEOF
 nft -f /opt/update-allowlist/infra/nftables/shared-dedi.nft \\
+&& sed -i 's|/home/debian/infra/update-allowlist|/opt/update-allowlist|g' /opt/update-allowlist/infra/systemd/firewall-agent.service \\
 && cd /opt/update-allowlist/apps/firewall-agent && go build -o firewall-agent ./cmd/firewall-agent \\
 && cp /opt/update-allowlist/infra/systemd/firewall-agent.service /etc/systemd/system/ \\
 && systemctl daemon-reload && systemctl enable --now firewall-agent \\
