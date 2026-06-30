@@ -30,13 +30,17 @@ export default function PortGroupsPage() {
   const [formPorts, setFormPorts] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const ALLOWED_PORTS = [51032, 51033, 51034, 51035];
+  const [allowedPorts, setAllowedPorts] = useState<number[]>([51032, 51033, 51034, 51035]);
 
   const fetchGroups = async () => {
     try {
       const res = await fetch('/api/port-groups');
       if (res.ok) setGroups(await res.json());
+      const portRes = await fetch('/api/protected-ports');
+      if (portRes.ok) {
+        const data = await portRes.json();
+        setAllowedPorts(data.ports);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -102,7 +106,7 @@ export default function PortGroupsPage() {
     const ports = formPorts
       .split(',')
       .map(p => parseInt(p.trim(), 10))
-      .filter(p => !isNaN(p) && ALLOWED_PORTS.includes(p));
+      .filter(p => !isNaN(p) && allowedPorts.includes(p));
 
     const errors: Record<string, string> = {};
 
@@ -173,7 +177,7 @@ export default function PortGroupsPage() {
           <div>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Protected Port Groups</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              These define which ports appear in allowlist rule forms. Only ports in the protected set ({ALLOWED_PORTS.join(', ')}) are valid.
+              These define which ports appear in allowlist rule forms. Only ports in the protected set ({allowedPorts.join(', ')}) are valid.
             </p>
           </div>
           <button className="btn btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>

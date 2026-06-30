@@ -39,7 +39,23 @@ export function normalizeIpCidr(value: string): { ipCidr: string; version: numbe
   }
 }
 
-export const ALLOWED_PORTS = [51032, 51033, 51034, 51035];
+const DEFAULT_ALLOWED_PORTS = [51032, 51033, 51034, 51035];
+
+function loadAllowedPorts(): number[] {
+  if (typeof process === 'undefined' || !process.env) return DEFAULT_ALLOWED_PORTS;
+  const env = process.env.PROTECTED_PORTS;
+  if (env) {
+    const ports = env.split(',').map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p) && p > 0);
+    if (ports.length > 0) return ports;
+  }
+  return DEFAULT_ALLOWED_PORTS;
+}
+
+export const ALLOWED_PORTS = loadAllowedPorts();
+
+export function getAllowedPorts(): number[] {
+  return loadAllowedPorts();
+}
 
 export function validatePorts(ports: number[]): boolean {
   if (!ports || ports.length === 0) return false;
