@@ -78,10 +78,10 @@ export async function POST(req: Request) {
     const resolvedPorts: number[] = [];
     if (groups.length === 0) {
       const fallbackGroups = [
-        { key: 'infra', ports: [50000,50001,50002,50003,50004,50005,50006,50007,50008,50009,50010,50011,50012] },
-        { key: 'apps', ports: [52100,52101,52102,52103,52104,52105,52106,52107,52108,52109,52110,52111,52112,52113,52114,52115,52116,52117] },
-        { key: 'kientaosteel', ports: [53000,55070,55433,58080,59000,59001] },
-        { key: 'all', ports: [] }
+        { key: 'postgres', ports: [15432] },
+        { key: 'mongo', ports: [27017] },
+        { key: 'minio', ports: [19000] },
+        { key: 'all', ports: [15432, 27017, 19000] }
       ];
       portGroupKeys.forEach((key: string) => {
         const fg = fallbackGroups.find(g => g.key === key);

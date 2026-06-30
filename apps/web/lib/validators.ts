@@ -39,11 +39,11 @@ export function normalizeIpCidr(value: string): { ipCidr: string; version: numbe
   }
 }
 
-export const ALLOWED_PORT_RANGE = { min: 50000, max: 60000 };
+export const ALLOWED_PORTS = [15432, 27017, 19000];
 
 export function validatePorts(ports: number[]): boolean {
   if (!ports || ports.length === 0) return false;
-  return ports.every(port => port >= ALLOWED_PORT_RANGE.min && port <= ALLOWED_PORT_RANGE.max);
+  return ports.every(port => ALLOWED_PORTS.includes(port));
 }
 
 export function validateExpiry(
