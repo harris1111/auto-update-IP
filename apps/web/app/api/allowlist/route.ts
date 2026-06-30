@@ -5,6 +5,7 @@ import { isValidIpOrCidr, normalizeIpCidr, validatePorts, validateExpiry } from 
 import { verifyStepUpToken } from '@/lib/stepup';
 import { canonicalJsonStringify, sha256 } from '@/lib/crypto';
 import { logAudit } from '@/lib/audit';
+import { resolvePortsForKeys } from '@/lib/port-groups';
 
 export async function GET() {
   const session = await getSession();
@@ -75,23 +76,7 @@ export async function POST(req: Request) {
       // Safe fallback if database read fails
     }
     
-    const resolvedPorts: number[] = [];
-    if (groups.length === 0) {
-      const fallbackGroups = [
-        { key: 'postgres', ports: [51032] },
-        { key: 'mongo', ports: [51033] },
-        { key: 'minio', ports: [51034] },
-        { key: 'redis', ports: [51035] },
-        { key: 'all', ports: [51032, 51033, 51034, 51035] }
-      ];
-      portGroupKeys.forEach((key: string) => {
-        const fg = fallbackGroups.find(g => g.key === key);
-        if (fg) resolvedPorts.push(...fg.ports);
-      });
-    } else {
-      groups.forEach(g => resolvedPorts.push(...g.ports));
-    }
-    const uniquePorts = Array.from(new Set(resolvedPorts));
+    const uniquePorts = await resolvePortsForKeys(portGroupKeys);
 
     if (!validatePorts(uniquePorts)) {
       return NextResponse.json({ error: 'Disallowed or invalid ports detected' }, { status: 400 });

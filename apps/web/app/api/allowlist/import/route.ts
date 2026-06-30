@@ -5,6 +5,7 @@ import { isValidIpOrCidr, normalizeIpCidr, validatePorts, validateExpiry } from 
 import { verifyStepUpToken } from '@/lib/stepup';
 import { canonicalJsonStringify, sha256 } from '@/lib/crypto';
 import { logAudit } from '@/lib/audit';
+import { resolvePortsForKeys } from '@/lib/port-groups';
 
 interface ImportRule {
   ipCidr: string;
@@ -51,14 +52,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired step-up token' }, { status: 403 });
     }
 
-    const fallbackGroups = [
-      { key: 'postgres', ports: [51032] },
-      { key: 'mongo', ports: [51033] },
-      { key: 'minio', ports: [51034] },
-      { key: 'redis', ports: [51035] },
-      { key: 'all', ports: [51032, 51033, 51034, 51035] }
-    ];
-
     const results: { index: number; status: 'created' | 'error'; message?: string }[] = [];
 
     for (let i = 0; i < rules.length; i++) {
@@ -80,12 +73,7 @@ export async function POST(req: Request) {
           continue;
         }
 
-        const resolvedPorts: number[] = [];
-        for (const key of rule.portGroupKeys) {
-          const fg = fallbackGroups.find(g => g.key === key);
-          if (fg) resolvedPorts.push(...fg.ports);
-        }
-        const uniquePorts = Array.from(new Set(resolvedPorts));
+        const uniquePorts = await resolvePortsForKeys(rule.portGroupKeys);
 
         if (!validatePorts(uniquePorts)) {
           results.push({ index: i, status: 'error', message: 'Invalid port group keys' });

@@ -282,9 +282,16 @@ export default function PortGroupsPage() {
                   </td>
                 </tr>
               ) : (
-                groups.map(g => (
+                groups.map(g => {
+                  const isVirtual = g.id === 'virtual-all';
+                  return (
                   <tr key={g.id} style={{ opacity: g.enabled ? 1 : 0.4 }}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{g.key}</td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                      {g.key}
+                      {isVirtual && (
+                        <span className="badge badge-warning" style={{ fontSize: '0.6rem', marginLeft: '0.4rem', verticalAlign: 'middle' }}>Auto</span>
+                      )}
+                    </td>
                     <td>{g.name}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{g.description || '—'}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{g.ports.join(', ') || '—'}</td>
@@ -294,15 +301,23 @@ export default function PortGroupsPage() {
                       </span>
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-secondary" style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem', marginRight: '0.25rem' }} onClick={() => handleEdit(g)}>
-                        Edit
-                      </button>
-                      <button className="btn btn-danger" style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem' }} onClick={() => handleDelete(g.id)}>
-                        Delete
-                      </button>
+                      {!isVirtual && (
+                        <>
+                          <button className="btn btn-secondary" style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem', marginRight: '0.25rem' }} onClick={() => handleEdit(g)}>
+                            Edit
+                          </button>
+                          <button className="btn btn-danger" style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem' }} onClick={() => handleDelete(g.id)}>
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {isVirtual && (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontStyle: 'italic' }}>Computed from enabled groups</span>
+                      )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

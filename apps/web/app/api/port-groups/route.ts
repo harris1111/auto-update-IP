@@ -3,14 +3,7 @@ import { getSession } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { ALLOWED_PORTS } from '@/lib/validators';
-
-export const DEFAULT_PORT_GROUPS = [
-  { key: 'postgres', name: 'PostgreSQL (DevDB)', description: 'Port 51032', ports: [51032], enabled: true, publicExposureAllowed: true },
-  { key: 'mongo', name: 'MongoDB (DevDB)', description: 'Port 51033', ports: [51033], enabled: true, publicExposureAllowed: true },
-  { key: 'minio', name: 'MinIO API', description: 'Port 51034', ports: [51034], enabled: true, publicExposureAllowed: true },
-  { key: 'redis', name: 'Redis (DevDB)', description: 'Port 51035', ports: [51035], enabled: true, publicExposureAllowed: true },
-  { key: 'all', name: 'All Dev Databases', description: 'Ports 51032, 51033, 51034, 51035', ports: [51032, 51033, 51034, 51035], enabled: true, publicExposureAllowed: true }
-];
+import { FIXED_PORT_GROUPS, resolveAllPorts } from '@/lib/port-groups';
 
 export async function GET() {
   try {
@@ -19,7 +12,7 @@ export async function GET() {
     if (groups.length === 0) {
       try {
         await Promise.all(
-          DEFAULT_PORT_GROUPS.map(pg =>
+          FIXED_PORT_GROUPS.map(pg =>
             prisma.portGroup.upsert({
               where: { key: pg.key },
               update: {},
@@ -32,12 +25,37 @@ export async function GET() {
     }
 
     if (groups.length === 0) {
-      return NextResponse.json(DEFAULT_PORT_GROUPS);
+      const allPorts = FIXED_PORT_GROUPS.flatMap(g => g.ports);
+      return NextResponse.json([
+        ...FIXED_PORT_GROUPS,
+        { key: 'all', name: 'All Dev Databases', description: `Auto: all enabled groups (${allPorts.join(', ')})`, ports: allPorts, enabled: true, publicExposureAllowed: true, id: 'virtual-all', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      ]);
     }
 
-    return NextResponse.json(groups);
+    const allPorts = await resolveAllPorts();
+
+    const result = [
+      ...groups.filter(g => g.key !== 'all'),
+      {
+        id: 'virtual-all',
+        key: 'all',
+        name: 'All Dev Databases',
+        description: `Auto: union of all enabled groups (${allPorts.join(', ')})`,
+        ports: allPorts,
+        enabled: true,
+        publicExposureAllowed: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json(DEFAULT_PORT_GROUPS);
+    const allPorts = FIXED_PORT_GROUPS.flatMap(g => g.ports);
+    return NextResponse.json([
+      ...FIXED_PORT_GROUPS,
+      { key: 'all', name: 'All Dev Databases', description: `Auto: all enabled groups (${allPorts.join(', ')})`, ports: allPorts, enabled: true, publicExposureAllowed: true, id: 'virtual-all', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+    ]);
   }
 }
 
@@ -55,6 +73,10 @@ export async function POST(req: Request) {
     }
 
     const sanitizedKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').substring(0, 32);
+    if (sanitizedKey === 'all') {
+      return NextResponse.json({ error: '"all" is a reserved key and auto-computed' }, { status: 400 });
+    }
+
     const sanitizedPorts: number[] = Array.isArray(ports) ? ports.filter((p: any) => typeof p === 'number' && ALLOWED_PORTS.includes(p)) : [];
     if (sanitizedPorts.length === 0) {
       return NextResponse.json({ error: 'At least one valid port is required' }, { status: 400 });
@@ -104,6 +126,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });
     }
 
+    const existing = await prisma.portGroup.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Port group not found' }, { status: 404 });
+    }
+    if (existing.key === 'all') {
+      return NextResponse.json({ error: '"all" is auto-computed and cannot be edited' }, { status: 400 });
+    }
+
     const data: any = {};
     if (name !== undefined) data.name = name.trim().substring(0, 64);
     if (description !== undefined) data.description = description?.trim()?.substring(0, 200) || null;
@@ -146,6 +176,9 @@ export async function DELETE(req: Request) {
     const group = await prisma.portGroup.findUnique({ where: { id } });
     if (!group) {
       return NextResponse.json({ error: 'Port group not found' }, { status: 404 });
+    }
+    if (group.key === 'all') {
+      return NextResponse.json({ error: '"all" is auto-computed and cannot be deleted' }, { status: 400 });
     }
 
     await prisma.portGroup.delete({ where: { id } });
