@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import StepUpModal from '@/components/StepUpModal';
 
@@ -176,9 +177,10 @@ export default function DashboardPage() {
     });
   };
 
-  const [extendDropdown, setExtendDropdown] = useState<string | null>(null);
+  const [extendDropdown, setExtendDropdown] = useState<{ id: string; top: number; left: number } | null>(null);
   const [extendCustomId, setExtendCustomId] = useState<string | null>(null);
   const [extendCustomVal, setExtendCustomVal] = useState('');
+  const extendBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     if (!extendDropdown) return;
@@ -449,68 +451,25 @@ export default function DashboardPage() {
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {!e.isPersistent && (
-                          <div style={{ display: 'inline-block', position: 'relative', marginRight: '0.25rem' }}>
-                            <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                              onClick={(ev) => { ev.stopPropagation(); setExtendDropdown(extendDropdown === e.id ? null : e.id); }}>
+                          <>
+                            <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', marginRight: '0.25rem' }}
+                              ref={el => { if (el) extendBtnRefs.current.set(e.id, el); else extendBtnRefs.current.delete(e.id); }}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                if (extendDropdown?.id === e.id) {
+                                  setExtendDropdown(null);
+                                  setExtendCustomId(null);
+                                  setExtendCustomVal('');
+                                } else {
+                                  const rect = ev.currentTarget.getBoundingClientRect();
+                                  setExtendDropdown({ id: e.id, top: rect.bottom + 4, left: rect.left });
+                                  setExtendCustomId(null);
+                                  setExtendCustomVal('');
+                                }
+                              }}>
                               Extend ▾
                             </button>
-                            {extendDropdown === e.id && (
-                              <div style={{
-                                position: 'absolute', top: '100%', right: 0, zIndex: 50,
-                                background: 'var(--modal-bg)', border: '1px solid var(--border-color)',
-                                borderRadius: '8px', padding: '0.25rem 0', minWidth: '160px',
-                                boxShadow: 'var(--shadow-card)',
-                              }} onClick={ev => ev.stopPropagation()}>
-                                {extendCustomId === e.id ? (
-                                  <div style={{ padding: '0.5rem 0.75rem' }}>
-                                    <input type="number" className="form-input" placeholder="Minutes" min="1" max="1440"
-                                      style={{ fontSize: '0.8rem', padding: '0.3rem', marginBottom: '0.35rem' }}
-                                      value={extendCustomVal}
-                                      onChange={ev => setExtendCustomVal(ev.target.value)}
-                                      onKeyDown={ev => { if (ev.key === 'Enter') { handleExtendEntry(e.id, parseInt(extendCustomVal) || 30); setExtendDropdown(null); setExtendCustomId(null); setExtendCustomVal(''); } }}
-                                      autoFocus />
-                                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                      <button className="btn btn-primary" style={{ flex: 1, padding: '0.25rem', fontSize: '0.75rem' }}
-                                        onClick={() => { handleExtendEntry(e.id, parseInt(extendCustomVal) || 30); setExtendDropdown(null); setExtendCustomId(null); setExtendCustomVal(''); }}>
-                                        Apply
-                                      </button>
-                                      <button className="btn btn-secondary" style={{ flex: 1, padding: '0.25rem', fontSize: '0.75rem' }}
-                                        onClick={() => { setExtendCustomId(null); setExtendCustomVal(''); }}>
-                                        Back
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    {[{ label: '+30m', mins: 30 }, { label: '+1h', mins: 60 }, { label: '+2h', mins: 120 }].map(opt => (
-                                      <button key={opt.label}
-                                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.8rem' }}
-                                        onMouseOver={ev => ev.currentTarget.style.background = 'var(--btn-secondary-hover)'}
-                                        onMouseOut={ev => ev.currentTarget.style.background = 'none'}
-                                        onClick={() => { handleExtendEntry(e.id, opt.mins); setExtendDropdown(null); }}>
-                                        {opt.label}
-                                      </button>
-                                    ))}
-                                    <button
-                                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.8rem' }}
-                                      onMouseOver={ev => ev.currentTarget.style.background = 'var(--btn-secondary-hover)'}
-                                      onMouseOut={ev => ev.currentTarget.style.background = 'none'}
-                                      onClick={() => { setExtendCustomId(e.id); setExtendCustomVal(''); }}>
-                                      Custom &hellip;
-                                    </button>
-                                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
-                                    <button
-                                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem', background: 'none', border: 'none', color: 'var(--warning)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                                      onMouseOver={ev => ev.currentTarget.style.background = 'var(--btn-secondary-hover)'}
-                                      onMouseOut={ev => ev.currentTarget.style.background = 'none'}
-                                      onClick={() => { handleExtendEntry(e.id, 'permanent'); setExtendDropdown(null); }}>
-                                      Permanent
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          </>
                         )}
                         <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => handleRevoke(e.id)}>
                           Revoke
@@ -648,6 +607,70 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      )}
+
+      {extendDropdown && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: extendDropdown.top,
+          left: extendDropdown.left,
+          zIndex: 1001,
+          background: 'var(--modal-bg)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+          padding: '0.25rem 0',
+          minWidth: '160px',
+          boxShadow: 'var(--shadow-modal)',
+        }} onClick={ev => ev.stopPropagation()}>
+          {extendCustomId ? (
+            <div style={{ padding: '0.5rem 0.75rem' }}>
+              <input type="number" className="form-input" placeholder="Minutes" min="1" max="1440"
+                style={{ fontSize: '0.8rem', padding: '0.3rem', marginBottom: '0.35rem' }}
+                value={extendCustomVal}
+                onChange={ev => setExtendCustomVal(ev.target.value)}
+                onKeyDown={ev => { if (ev.key === 'Enter') { handleExtendEntry(extendCustomId, parseInt(extendCustomVal) || 30); setExtendDropdown(null); setExtendCustomId(null); setExtendCustomVal(''); } }}
+                autoFocus />
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <button className="btn btn-primary" style={{ flex: 1, padding: '0.25rem', fontSize: '0.75rem' }}
+                  onClick={() => { handleExtendEntry(extendCustomId, parseInt(extendCustomVal) || 30); setExtendDropdown(null); setExtendCustomId(null); setExtendCustomVal(''); }}>
+                  Apply
+                </button>
+                <button className="btn btn-secondary" style={{ flex: 1, padding: '0.25rem', fontSize: '0.75rem' }}
+                  onClick={() => { setExtendCustomId(null); setExtendCustomVal(''); }}>
+                  Back
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {[{ label: '+30m', mins: 30 }, { label: '+1h', mins: 60 }, { label: '+2h', mins: 120 }].map(opt => (
+                <button key={opt.label}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.8rem' }}
+                  onMouseOver={ev => ev.currentTarget.style.background = 'var(--btn-secondary-hover)'}
+                  onMouseOut={ev => ev.currentTarget.style.background = 'none'}
+                  onClick={() => { handleExtendEntry(extendDropdown.id, opt.mins); setExtendDropdown(null); }}>
+                  {opt.label}
+                </button>
+              ))}
+              <button
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.8rem' }}
+                onMouseOver={ev => ev.currentTarget.style.background = 'var(--btn-secondary-hover)'}
+                onMouseOut={ev => ev.currentTarget.style.background = 'none'}
+                onClick={() => { setExtendCustomId(extendDropdown.id); setExtendCustomVal(''); }}>
+                Custom &hellip;
+              </button>
+              <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.25rem 0' }} />
+              <button
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem', background: 'none', border: 'none', color: 'var(--warning)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                onMouseOver={ev => ev.currentTarget.style.background = 'var(--btn-secondary-hover)'}
+                onMouseOut={ev => ev.currentTarget.style.background = 'none'}
+                onClick={() => { handleExtendEntry(extendDropdown.id, 'permanent'); setExtendDropdown(null); }}>
+                Permanent
+              </button>
+            </>
+          )}
+        </div>,
+        document.body
       )}
     </>
   );
