@@ -42,7 +42,9 @@ export default function SettingsPage() {
 
   const [newPasskeyName, setNewPasskeyName] = useState('');
   const [newTokenName, setNewTokenName] = useState('');
+  const [newServerName, setNewServerName] = useState('');
   const [generatedToken, setGeneratedToken] = useState('');
+  const [bootstrapCommand, setBootstrapCommand] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -146,6 +148,34 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAddServer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setBootstrapCommand('');
+    setActionLoading(true);
+
+    try {
+      const res = await fetch('/api/servers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newServerName.trim() }),
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setBootstrapCommand(data.bootstrapCommand);
+      setNewServerName('');
+      setSuccess(`Server "${data.name}" registered. Copy the bootstrap command below and run it on the worker.`);
+      await fetchSettingsData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create server');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDeleteServer = async (serverId: string) => {
     if (!confirm('Delete this server? It will be re-registered if the agent checks in again.')) return;
 
@@ -163,6 +193,11 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCopyBootstrap = () => {
+    navigator.clipboard.writeText(bootstrapCommand);
+    setSuccess('Bootstrap command copied to clipboard.');
+  };
+
   if (loading) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -178,7 +213,7 @@ export default function SettingsPage() {
       <main className="container animate-fade-in" style={{ flex: 1 }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>System Settings</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
-          Configure passkey credentials, manage agent tokens, and view registered servers.
+          Configure passkey credentials, manage agent tokens, and register worker servers.
         </p>
 
         {error && (
@@ -299,12 +334,60 @@ export default function SettingsPage() {
 
         {activeTab === 'servers' && (
           <div className="card" style={{ height: 'fit-content' }}>
-            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Registered Servers</h3>
+            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Register Worker Server</h3>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-              Servers are auto-registered when a firewall agent checks in with a unique <code>SERVER_NAME</code>.
-              Each server receives rules you explicitly assign, or all rules when no servers are selected.
+              Register a new worker node on the master, then run the generated one-shot command on the worker machine.
+              It will install the firewall agent, configure nftables, and connect back to this master.
             </p>
+
+            {bootstrapCommand && (
+              <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <strong style={{ color: 'var(--warning)', fontSize: '0.85rem' }}>
+                    One-shot bootstrap command — run this on the worker:
+                  </strong>
+                  <button className="btn btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }} onClick={handleCopyBootstrap}>
+                    Copy
+                  </button>
+                </div>
+                <pre style={{
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  padding: '1rem',
+                  borderRadius: '6px',
+                  overflowX: 'auto',
+                  fontSize: '0.8rem',
+                  lineHeight: '1.6',
+                  margin: 0,
+                  border: '1px solid var(--border-color)',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                }}>
+                  {bootstrapCommand}
+                </pre>
+              </div>
+            )}
+
+            <form onSubmit={handleAddServer} style={{ background: 'rgba(0,0,0,0.15)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--border-color)', marginBottom: '1.5rem' }}>
+              <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Add Worker Node</h4>
+              <div className="form-group">
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Server name (e.g. vps-frankfurt)"
+                  value={newServerName}
+                  onChange={e => setNewServerName(e.target.value)}
+                  required
+                  id="server-name-input"
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.5rem 1rem', fontSize: '0.9rem' }} disabled={actionLoading || !newServerName} id="add-server-btn">
+                Register & Generate Command
+              </button>
+            </form>
+
+            <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Registered Workers ({servers.length})</h3>
 
             <div className="table-container">
               <table>
@@ -321,7 +404,7 @@ export default function SettingsPage() {
                   {servers.length === 0 ? (
                     <tr>
                       <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                        No servers registered yet. Start a firewall agent with <code>SERVER_NAME=your-server</code> to register.
+                        No workers registered yet. Add one above to generate the bootstrap command.
                       </td>
                     </tr>
                   ) : (
