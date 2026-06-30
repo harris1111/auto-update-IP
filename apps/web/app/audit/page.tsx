@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 
 interface AuditLog {
   id: string;
@@ -66,9 +65,6 @@ export default function AuditPage() {
   };
 
   return (
-    <>
-      <Header />
-
       <main className="container animate-fade-in" style={{ flex: 1 }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>System Audit Logs</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
@@ -136,6 +132,5 @@ export default function AuditPage() {
           </table>
         </div>
       </main>
-    </>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { startRegistration } from '@simplewebauthn/browser';
-import Header from '@/components/Header';
 
 interface Passkey {
   id: string;
@@ -207,9 +206,6 @@ export default function SettingsPage() {
   }
 
   return (
-    <>
-      <Header />
-
       <main className="container animate-fade-in" style={{ flex: 1 }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>System Settings</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>
@@ -436,6 +432,5 @@ export default function SettingsPage() {
           </div>
         )}
       </main>
-    </>
   );
 }

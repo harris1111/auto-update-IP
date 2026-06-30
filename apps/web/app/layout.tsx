@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,9 +26,14 @@ export default function RootLayout({
           __html: `(function(){var t=localStorage.getItem('theme');if(!t) t=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t)})()`
         }} />
       </head>
-      <body className="min-h-full font-sans flex flex-col">
+      <body className="min-h-full font-sans">
         <ThemeProvider>
-          {children}
+          <div className="app-layout">
+            <Sidebar />
+            <main className="main-content">
+              {children}
+            </main>
+          </div>
         </ThemeProvider>
       </body>
     </html>

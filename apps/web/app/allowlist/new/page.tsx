@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 import StepUpModal from '@/components/StepUpModal';
 
 interface Server {
@@ -169,8 +168,6 @@ export default function NewAllowlistPage() {
 
   return (
     <>
-      <Header />
-
       <main className="container animate-fade-in" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
         <div className="card" style={{ width: '100%', maxWidth: '600px' }}>
           <h2>Add New Firewall Rule</h2>

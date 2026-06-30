@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 import StepUpModal from '@/components/StepUpModal';
 
 interface Server {
@@ -199,7 +198,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Header />
 
       <main className="container animate-fade-in" style={{ flex: 1 }}>
         {entries.some(e => e.enabled && !e.lastAppliedAt) && (

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
 
 interface PortGroup {
   id: string;
@@ -169,10 +168,7 @@ export default function PortGroupsPage() {
   }
 
   return (
-    <>
-      <Header />
-
-      <main className="container animate-fade-in" style={{ flex: 1 }}>
+    <main className="container animate-fade-in" style={{ flex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Protected Port Groups</h2>
@@ -312,6 +308,5 @@ export default function PortGroupsPage() {
           </table>
         </div>
       </main>
-    </>
   );
 }
