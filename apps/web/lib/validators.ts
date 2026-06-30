@@ -39,7 +39,7 @@ export function normalizeIpCidr(value: string): { ipCidr: string; version: numbe
   }
 }
 
-export const ALLOWED_PORTS = [15432, 27017, 19000, 50004];
+export const ALLOWED_PORTS = [51032, 51033, 51034, 50004];
 
 export function validatePorts(ports: number[]): boolean {
   if (!ports || ports.length === 0) return false;

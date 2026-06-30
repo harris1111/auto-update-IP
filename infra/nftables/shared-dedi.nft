@@ -15,7 +15,7 @@ table inet shared_dedi {
     ct state established,related accept
     iif lo accept
 
-    tcp dport {15432, 27017, 19000, 50000-60000} ip saddr != @db_allow_v4 drop
-    tcp dport {15432, 27017, 19000, 50000-60000} ip6 saddr != @db_allow_v6 drop
+    tcp dport {51032, 51033, 51034, 50004} ip saddr != @db_allow_v4 drop
+    tcp dport {51032, 51033, 51034, 50004} ip6 saddr != @db_allow_v6 drop
   }
 }
