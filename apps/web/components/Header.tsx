@@ -21,6 +21,7 @@ export default function Header() {
         </Link>
         <nav className="nav-links">
           <Link href="/dashboard">Dashboard</Link>
+          <Link href="/port-groups">Port Groups</Link>
           <Link href="/audit">Audit Logs</Link>
           <Link href="/settings">Settings</Link>
           <button className="theme-toggle" onClick={toggle} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
