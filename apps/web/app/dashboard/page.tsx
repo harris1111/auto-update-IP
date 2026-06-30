@@ -153,6 +153,26 @@ export default function DashboardPage() {
     });
   };
 
+  const handleMakePersistent = (id: string) => {
+    triggerStepUp(`allowlist.update:${id}`, { isPersistent: true }, async (stepUpToken) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/allowlist/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPersistent: true, stepUpToken }),
+        });
+        const result = await res.json();
+        if (result.error) alert(result.error);
+        else await fetchData();
+      } catch (err) {
+        alert('Failed to update entry');
+      } finally {
+        setLoading(false);
+      }
+    });
+  };
+
   const handleRevokeAll = () => {
     const payload = {};
     triggerStepUp('allowlist.revoke-all', payload, async (stepUpToken) => {
@@ -413,7 +433,12 @@ export default function DashboardPage() {
                       <td style={{ color: e.isPersistent ? 'var(--warning)' : 'inherit' }}>
                         {getRemainingTime(e.expiresAt)}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {!e.isPersistent && (
+                          <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', marginRight: '0.25rem' }} onClick={() => handleMakePersistent(e.id)}>
+                            Make Permanent
+                          </button>
+                        )}
                         <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => handleRevoke(e.id)}>
                           Revoke
                         </button>

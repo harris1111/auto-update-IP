@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyStepUpToken } from '@/lib/stepup';
 import { canonicalJsonStringify, sha256 } from '@/lib/crypto';
 import { logAudit } from '@/lib/audit';
-import { isValidIpOrCidr, normalizeIpCidr } from '@/lib/validators';
+import { isValidIpOrCidr, normalizeIpCidr, validateExpiry } from '@/lib/validators';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -57,7 +57,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Invalid or expired step-up token' }, { status: 403 });
     }
 
-    const { label, reason, ipCidr, enabled } = payload;
+    const { label, reason, ipCidr, enabled, isPersistent, ttlMinutes } = payload;
     
     let normalizedIp = undefined;
     let version = undefined;
@@ -70,6 +70,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       version = norm.version;
     }
 
+    let expiresAt: Date | null | undefined = undefined;
+    if (isPersistent !== undefined || ttlMinutes !== undefined) {
+      const mode = isPersistent ? 'persistent' : 'temporary';
+      try {
+        expiresAt = validateExpiry(mode, undefined, ttlMinutes || undefined);
+      } catch (expErr: any) {
+        return NextResponse.json({ error: expErr.message }, { status: 400 });
+      }
+    }
+
     let entry;
     try {
       entry = await prisma.allowlistEntry.update({
@@ -80,6 +90,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           ipCidr: normalizedIp,
           ipVersion: version,
           enabled: enabled !== undefined ? enabled : undefined,
+          isPersistent: isPersistent !== undefined ? isPersistent : undefined,
+          expiresAt: expiresAt !== undefined ? expiresAt : undefined,
           updatedBy: session.userId,
         },
       });
